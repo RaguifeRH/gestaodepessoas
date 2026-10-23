@@ -1,6 +1,6 @@
 // Pessoas e dossiê — lista com busca e filtros.
-import { $, $$, esc, tit, kpis, norm, fmtData, fmtNum, pill, vazio } from '../ui.js';
-import { NOME_GRUPO } from '../fo1029.js';
+import { $, $$, esc, tit, kpis, norm, fmtData, fmtNum, pill, vazio } from '../ui.js?v=2';
+import { NOME_GRUPO } from '../fo1029.js?v=2';
 
 const COR = { ativo: 'ok', afastado: 'sol', desligando: 'amb', desligado: '' };
 let estado = { q: '', f: '', s: '', g: 'atuais', n: 60 };

@@ -1,5 +1,5 @@
 // Painel de RH: headcount, admissões, desligamentos e turnover (dados do FO1029).
-import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js';
+import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=2';
 
 let filial = '';
 const NOMES_MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -15,7 +15,7 @@ export async function render(el, ctx) {
   const meses = []; const d0 = new Date(); d0.setDate(1);
   for (let k = 11; k >= 0; k--) { const d = new Date(d0); d.setMonth(d.getMonth() - k); meses.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
   const adm = meses.map(m => 0), dem = meses.map(m => 0), hc = meses.map(m => 0);
-  itens.forEach(x => (x.v || []).forEach(([a, d]) => {
+  itens.forEach(x => (x.v || []).map(p => Array.isArray(p) ? p : String(p).split('|')).forEach(([a, d]) => {
     meses.forEach((m, i) => {
       const fim = m + '-31';
       if (a && a.slice(0, 7) === m) adm[i]++;

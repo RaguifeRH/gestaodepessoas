@@ -2,8 +2,8 @@
 // Camada de dados — todo acesso ao banco passa por aqui.
 // Dois modos: Firebase (real) e demonstração (fictício, só neste navegador).
 // ============================================================================
-import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js';
-import { itemResumo, montar } from './fo1029.js';
+import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=2';
+import { itemResumo, montar } from './fo1029.js?v=2';
 
 const agora = () => new Date().toISOString();
 const LOTE = 400; // operações por lote de gravação (limite do Firestore é 500)
