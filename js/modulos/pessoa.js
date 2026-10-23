@@ -1,7 +1,7 @@
 // Pasta da pessoa: jornada, linha do tempo, documentos, vínculos e dados.
-import { TIPOS_EVENTO } from '../config.js?v=11';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=11';
-import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=11';
+import { TIPOS_EVENTO } from '../config.js?v=12';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=12';
+import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=12';
 
 export async function render(el, ctx, id) {
   const p = await ctx.D.pessoa(id);

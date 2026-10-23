@@ -1,8 +1,8 @@
 // Admissão: checklist por perfil (quem fez e quando), cruzamento com o FO1029 pelo CPF,
 // documentos para imprimir, anexos e benefício do sindicato dos motoristas.
-import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=11';
-import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=11';
-import { carregar as carregarSelecao } from '../selecao.js?v=11';
+import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=12';
+import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=12';
+import { carregar as carregarSelecao } from '../selecao.js?v=12';
 
 let aba = 'andamento';
 
@@ -77,8 +77,8 @@ async function iniciar(ctx, A, base) {
 }
 
 async function manual(ctx, A) {
-  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=11');
-  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=11');
+  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=12');
+  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=12');
   let base = null;
   const r = await modal({ titulo: 'Admissão sem o R&S', corpo: `<p class="small muted" style="margin:0">Para quem não passou pelo kanban (transferência, recontratação direta, sócio…).</p>
       <div class="campo"><label for="m-nome">Nome completo</label><input class="inp" id="m-nome"></div>
@@ -208,22 +208,16 @@ async function detalhe(el, ctx, id) {
   $('#imp-odonto').onclick = () => termo('odontológico');
 }
 
-// Itens e perfis do checklist (administrador).
+// Itens e perfis do checklist (administrador): editor visual.
 async function configurar(ctx, A) {
-  const linhas = A.cfg.itens.map(i => [i.id, i.secao, i.texto, i.it || '', (i.perfis || []).join(','), i.auto || '', i.opcional ? 'sim' : ''].join(' | ')).join('\n');
-  const corpo = `<div class="campo"><label for="cf-ini">Mostrar em "Para iniciar" os admitidos no FO1029 a partir de</label><input class="inp" type="date" id="cf-ini" value="${esc(A.cfg.inicio)}"></div>
-    <div class="campo"><label for="cf-per">Perfis (id; nome), um por linha</label><textarea class="inp" id="cf-per" rows="5">${esc(A.cfg.perfis.map(p => p.id + '; ' + p.nome).join('\n'))}</textarea></div>
-    <div class="campo"><label for="cf-it">Itens: código | seção (documentos, cadastro ou integracao) | texto | instrução (IT) | perfis separados por vírgula (vazio = todos) | campo do FO1029 | opcional</label><textarea class="inp" id="cf-it" rows="14" style="font-family:monospace;font-size:12px">${esc(linhas)}</textarea><span class="ajuda">Não troque o código de um item que já está em uso: é por ele que o sistema sabe o que foi marcado.</span></div><div id="cf-msg"></div>`;
-  const r = await modal({ titulo: 'Configurar checklist', corpo, larga: true, botoes: [{ id: 'padrao', texto: 'Voltar ao padrão', cls: 'ghost' }, { id: 'cancelar', texto: 'Cancelar' }, { id: 'ok', texto: 'Salvar', cls: 'prim' }],
-    antesDeFechar: async (b, bg) => {
-      try {
-        if (b === 'padrao') { await ctx.D.salvarConfig('admissao', { itens: ADM_ITENS_PADRAO, perfis: ADM_PERFIS_PADRAO }); return; }
-        const perfis = $('#cf-per', bg).value.split('\n').map(l => l.split(';').map(x => x.trim())).filter(x => x[0]).map(([id, nome]) => ({ id, nome: nome || id }));
-        const itens = $('#cf-it', bg).value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && x[2]).map(([id, secao, texto, it, perf, auto, opc]) => ({ id, secao: ['documentos', 'cadastro', 'integracao'].includes(secao) ? secao : 'cadastro', texto, it: it || '', perfis: (perf || '').split(',').map(x => x.trim()).filter(Boolean), auto: auto || '', opcional: /^s/i.test(opc || '') }));
-        if (new Set(itens.map(i => i.id)).size !== itens.length) { $('#cf-msg', bg).innerHTML = '<div class="erro-msg">Há códigos repetidos.</div>'; return false; }
-        await ctx.D.salvarConfig('admissao', { itens, perfis, inicio: $('#cf-ini', bg).value || A.cfg.inicio });
-      } catch (e) { $('#cf-msg', bg).innerHTML = `<div class="erro-msg">${esc(erroAmigavel(e))}</div>`; return false; }
-    } });
-  if (r === 'ok' || r === 'padrao') { await carregarAdm(ctx, true); toast('Checklist salvo.'); return true; }
-  return false;
+  const { editarChecklist } = await import('../checklist-editor.js?v=12');
+  const auto = [['cpf', 'CPF'], ['rg', 'RG'], ['pis', 'PIS'], ['ctps', 'CTPS'], ['titulo', 'Título de eleitor'], ['nascimento', 'Nascimento'], ['endereco', 'Endereço'], ['celular', 'Celular'], ['reservista', 'Reservista'], ['chapa', 'Chapa']];
+  const ok = await editarChecklist({ titulo: 'Checklist da admissão', nomeGrupo: 'Seção',
+    extraTopo: `<div class="campo" style="margin-bottom:12px"><label for="cf-ini">Mostrar em "Para iniciar" os admitidos no FO1029 a partir de</label><input class="inp" type="date" id="cf-ini" value="${esc(A.cfg.inicio)}" style="max-width:220px"></div>`,
+    lerExtraTopo: bg => ({ inicio: $('#cf-ini', bg).value || A.cfg.inicio }),
+    itens: A.cfg.itens.map(i => ({ ...i, grupo: i.secao })), perfis: A.cfg.perfis, grupos: ADM_SECOES.map(s => [s.id, s.nome]), campos: { it: true, opcional: true, auto },
+    padrao: () => ({ itens: ADM_ITENS_PADRAO.map(i => ({ ...i, grupo: i.secao })), perfis: ADM_PERFIS_PADRAO }),
+    aoSalvar: (itens, perfis, extra) => ctx.D.salvarConfig('admissao', { perfis, inicio: extra.inicio || A.cfg.inicio, itens: itens.map(i => ({ id: i.id, secao: i.grupo, texto: i.texto, it: i.it || '', perfis: i.perfis, auto: i.auto || '', opcional: !!i.opcional })) }) });
+  if (ok) await carregarAdm(ctx, true);
+  return ok;
 }

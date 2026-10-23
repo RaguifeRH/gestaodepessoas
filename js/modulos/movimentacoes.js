@@ -1,6 +1,6 @@
 // Movimentações: promoções e mudanças, motoristas (cesta/ticket), multiplicadores, auxílio educação e adiantamentos.
-import { MOTIVOS_MOV } from '../config.js?v=11';
-import { $, $$, esc, tit, kpis, st, pill, fmtData, fmtReais, hojeISO, modal, toast, erroAmigavel, norm } from '../ui.js?v=11';
+import { MOTIVOS_MOV } from '../config.js?v=12';
+import { $, $$, esc, tit, kpis, st, pill, fmtData, fmtReais, hojeISO, modal, toast, erroAmigavel, norm } from '../ui.js?v=12';
 
 const SN = ['Não', 'Sim'];
 // Cada aba é uma lista simples descrita por campos. pessoa: escolhe do FO1029 e preenche nome/cargo/setor.

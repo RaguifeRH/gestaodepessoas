@@ -683,3 +683,11 @@ body.pagina-publica{background:var(--papel);min-height:100vh}
   .cv>div:last-child>div{justify-content:flex-start!important}
 }
 .btn:disabled,.btn[disabled]{opacity:.5;cursor:not-allowed}
+/* ---------- Editor de checklist ---------- */
+.ce-item{padding:12px 16px;border-top:1px solid var(--linha);display:grid;gap:8px}
+.ce-l1{display:flex;gap:8px;align-items:center}.ce-l1 .inp{flex:1;font-weight:500}
+.ce-acoes{display:flex;gap:2px}.ce-acoes .ico-btn{width:32px;height:32px}
+.ce-l2,.ce-l3{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ce-l3 label{display:flex;gap:6px;align-items:center}
+.ce-chip{border:1px solid var(--linha2);background:#fff;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+.ce-chip.on{background:var(--orvalho);border-color:var(--verde);color:var(--mata)}

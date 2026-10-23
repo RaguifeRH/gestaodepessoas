@@ -1,9 +1,9 @@
 // Dados dos sistemas antigos: importa os backups (.json) gerados em 22/10/2026.
 // Os sistemas antigos não são alterados: o backup é só lido.
-import { ETAPAS } from '../config.js?v=11';
-import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=11';
-import { carregar, normalizarMotivo } from '../selecao.js?v=11';
-import { hashCpf, mascararCpf } from '../fo1029.js?v=11';
+import { ETAPAS } from '../config.js?v=12';
+import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=12';
+import { carregar, normalizarMotivo } from '../selecao.js?v=12';
+import { hashCpf, mascararCpf } from '../fo1029.js?v=12';
 
 const SISTEMAS = [
   { id: 'novaRH', nome: 'Raguife (novaRH) · Vagas, seleção e admissão', etapa: 2, desc: 'Pedidos de vaga, N2, vagas, candidatos, banco de talentos, agenda do R&S, processos de admissão e lista de motoristas (cesta/ticket).' },

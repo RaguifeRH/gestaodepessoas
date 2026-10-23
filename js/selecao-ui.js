@@ -1,10 +1,10 @@
 // ============================================================================
 // Vagas e seleção — janelas compartilhadas: vaga, candidato, mudança de etapa.
 // ============================================================================
-import { ETAPAS, MOTIVOS_REPROVA, ORIGENS, MOTIVOS_VAGA, EMPRESAS_PADRAO, PERFIS_PADRAO } from './config.js?v=11';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, modal, toast, erroAmigavel, confirmar, st, pill } from './ui.js?v=11';
-import { hashCpf, mascararCpf } from './fo1029.js?v=11';
-import { etapa, ordemEtapa, carregar, retornoPendente } from './selecao.js?v=11';
+import { ETAPAS, MOTIVOS_REPROVA, ORIGENS, MOTIVOS_VAGA, EMPRESAS_PADRAO, PERFIS_PADRAO } from './config.js?v=12';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, modal, toast, erroAmigavel, confirmar, st, pill } from './ui.js?v=12';
+import { hashCpf, mascararCpf } from './fo1029.js?v=12';
+import { etapa, ordemEtapa, carregar, retornoPendente } from './selecao.js?v=12';
 
 const SO = s => String(s || '').replace(/\D/g, '');
 export function cpfValido(c) {

@@ -1,7 +1,7 @@
 // Agenda do R&S: entrevistas, testes, exames e integrações marcados nos candidatos.
-import { $, $$, esc, tit, card, fmtData, hojeISO, norm } from '../ui.js?v=11';
-import { carregar, compromissos, etapa } from '../selecao.js?v=11';
-import { fichaCandidato } from '../selecao-ui.js?v=11';
+import { $, $$, esc, tit, card, fmtData, hojeISO, norm } from '../ui.js?v=12';
+import { carregar, compromissos, etapa } from '../selecao.js?v=12';
+import { fichaCandidato } from '../selecao-ui.js?v=12';
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 let mes = null, diaSel = null, histQ = '', hist = null;

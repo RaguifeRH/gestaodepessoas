@@ -1,6 +1,6 @@
 // Rescisão: desligamento com checklist por setor (RH, SESMT, TI, almoxarifado), homologação e dossiê.
-import { RESC_SETORES, TIPOS_DESLIG, RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO } from '../config.js?v=11';
-import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=11';
+import { RESC_SETORES, TIPOS_DESLIG, RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO } from '../config.js?v=12';
+import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=12';
 
 let aba = 'andamento', meus = false;
 const nomeTipo = k => (TIPOS_DESLIG.find(t => t[0] === k) || [k, k || '—'])[1];
@@ -11,15 +11,18 @@ async function carregarResc(ctx, forcar) {
   if (ctx._resc && !forcar) return ctx._resc;
   const [procs, cfg] = await Promise.all([ctx.D.listar('rescisoes'), ctx.D.lerConfig('rescisao').catch(() => null)]);
   const c = cfg || {};
-  ctx._resc = { procs, cfg: { itens: c.itens && c.itens.length ? c.itens : RESC_ITENS_PADRAO, perfis: c.perfis && c.perfis.length ? c.perfis : RESC_PERFIS_PADRAO } };
+  ctx._resc = { procs, cfg: c.modelo === 2 && c.itens && c.itens.length ? { itens: c.itens, perfis: c.perfis } : converter(c.itens && c.itens.length ? c.itens : RESC_ITENS_PADRAO, c.perfis && c.perfis.length ? c.perfis : RESC_PERFIS_PADRAO) };
   return ctx._resc;
 }
 // Itens do perfil: lista própria do perfil ou, sem lista, os gerais + os condicionais do perfil.
 export function itensDoPerfil(cfg, perfilId) {
-  const p = cfg.perfis.find(x => x.id === perfilId);
-  if (p && p.itens && p.itens.length) return cfg.itens.filter(i => p.itens.includes(i.id));
-  const conds = (p && p.conds) || [];
-  return cfg.itens.filter(i => !i.conds || !i.conds.length || i.conds.some(c => conds.includes(c)));
+  return cfg.itens.filter(i => !i.perfis || !i.perfis.length || i.perfis.includes(perfilId));
+}
+// Modelo do novaRH (perfil com lista própria ou condições adm/lider/mot) → cada item diz para quais perfis vale.
+function converter(itens, perfis) {
+  const antigo = (p) => p.itens && p.itens.length ? itens.filter(i => p.itens.includes(i.id)) : itens.filter(i => !i.conds || !i.conds.length || i.conds.some(c => (p.conds || []).includes(c)));
+  const conj = new Map(perfis.map(p => [p.id, new Set(antigo(p).map(i => i.id))]));
+  return { perfis: perfis.map(p => ({ id: p.id, nome: p.nome })), itens: itens.map(i => { const pf = perfis.filter(p => conj.get(p.id).has(i.id)).map(p => p.id); return { id: i.id, setor: i.setor, texto: i.texto, perfis: pf.length === perfis.length ? [] : pf }; }) };
 }
 const nomePerfil = (cfg, id) => (cfg.perfis.find(p => p.id === id) || { nome: id || '—' }).nome;
 function perfilSugerido(cfg, x, tipo) {
@@ -173,16 +176,11 @@ async function detalhe(el, ctx, id) {
 }
 
 async function configurar(ctx, R) {
-  const corpo = `<div class="campo"><label for="cf-it">Itens: código | setor (${Object.keys(RESC_SETORES).join(', ')}) | texto | condições separadas por vírgula (adm, lider, mot, pcd; vazio = todos)</label><textarea class="inp" id="cf-it" rows="14" style="font-family:monospace;font-size:12px">${esc(R.cfg.itens.map(i => [i.id, i.setor, i.texto, (i.conds || []).join(',')].join(' | ')).join('\n'))}</textarea></div>
-    <div class="campo"><label for="cf-per">Perfis: código | nome | condições | itens próprios (códigos separados por vírgula; vazio = gerais + condições)</label><textarea class="inp" id="cf-per" rows="9" style="font-family:monospace;font-size:12px">${esc(R.cfg.perfis.map(p => [p.id, p.nome, (p.conds || []).join(','), (p.itens || []).join(',')].join(' | ')).join('\n'))}</textarea><span class="ajuda">Não troque o código de um item em uso.</span></div><div id="cf-msg"></div>`;
-  const r = await modal({ titulo: 'Configurar checklist da rescisão', corpo, larga: true, botoes: [{ id: 'cancelar', texto: 'Cancelar' }, { id: 'ok', texto: 'Salvar', cls: 'prim' }],
-    antesDeFechar: async (b, bg) => {
-      const sp = (v) => (v || '').split(',').map(x => x.trim()).filter(Boolean);
-      const itens = $('#cf-it', bg).value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && x[2]).map(([id, setor, texto, conds]) => ({ id, setor: setor || 'rh', texto, conds: sp(conds) }));
-      const perfis = $('#cf-per', bg).value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(x => x[0] && x[1]).map(([id, nome, conds, its]) => ({ id, nome, conds: sp(conds), itens: sp(its) }));
-      if (new Set(itens.map(i => i.id)).size !== itens.length) { $('#cf-msg', bg).innerHTML = '<div class="erro-msg">Há códigos repetidos.</div>'; return false; }
-      try { await ctx.D.salvarConfig('rescisao', { itens, perfis }); } catch (e) { $('#cf-msg', bg).innerHTML = `<div class="erro-msg">${esc(erroAmigavel(e))}</div>`; return false; }
-    } });
-  if (r === 'ok') { ctx._resc = null; toast('Checklist salvo.'); return true; }
-  return false;
+  const { editarChecklist } = await import('../checklist-editor.js?v=12');
+  const ok = await editarChecklist({ titulo: 'Checklist da rescisão', nomeGrupo: 'Setor',
+    itens: R.cfg.itens.map(i => ({ ...i, grupo: i.setor })), perfis: R.cfg.perfis, grupos: Object.entries(RESC_SETORES), campos: {},
+    padrao: () => { const c = converter(RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO); return { itens: c.itens.map(i => ({ ...i, grupo: i.setor })), perfis: c.perfis }; },
+    aoSalvar: (itens, perfis) => ctx.D.salvarConfig('rescisao', { modelo: 2, perfis, itens: itens.map(i => ({ id: i.id, setor: i.grupo, texto: i.texto, perfis: i.perfis })) }) });
+  if (ok) ctx._resc = null;
+  return ok;
 }
