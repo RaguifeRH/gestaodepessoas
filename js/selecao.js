@@ -1,8 +1,8 @@
 // ============================================================================
 // Vagas e seleção — regras compartilhadas entre as telas, o início e o sino.
 // ============================================================================
-import { ETAPAS, STATUS_SOL } from './config.js?v=6';
-import { hojeISO, somarDias, diasEntre } from './ui.js?v=6';
+import { ETAPAS, STATUS_SOL } from './config.js?v=7';
+import { hojeISO, somarDias, diasEntre } from './ui.js?v=7';
 
 export const etapa = id => ETAPAS.find(e => e.id === id) || ETAPAS[0];
 export const ordemEtapa = id => Math.max(0, ETAPAS.findIndex(e => e.id === id));
@@ -32,7 +32,9 @@ export function prazoVaga(v) {
 export const emAndamento = c => c.situacao === 'andamento';
 export const foraDoProcesso = c => c.situacao === 'reprovado' || c.situacao === 'desistiu';
 // Retorno pendente: reprovou ou desistiu e ninguém registrou o retorno (dados antigos não contam).
-export const retornoPendente = c => foraDoProcesso(c) && !c.retorno && !c.legado;
+// Quem saiu do processo (inclusive por vaga cancelada/encerrada) precisa receber retorno.
+export const precisaRetorno = c => foraDoProcesso(c) || !!c.retornoDevido;
+export const retornoPendente = c => precisaRetorno(c) && !c.retorno && !c.legado;
 
 // Datas marcadas do candidato (para a agenda e o "para hoje").
 export function compromissos(c) {

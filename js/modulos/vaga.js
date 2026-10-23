@@ -1,8 +1,8 @@
 // Uma vaga: cabeçalho com prazo e o kanban dos candidatos.
-import { ETAPAS, STATUS_VAGA } from '../config.js?v=6';
-import { $, $$, esc, iniciais, fmtData, st, pill, vazio, modal, toast, erroAmigavel, confirmar, hojeISO } from '../ui.js?v=6';
-import { carregar, prazoVaga, etapa, retornoPendente } from '../selecao.js?v=6';
-import { modalVaga, novoCandidato, moverEtapa, fichaCandidato, levarParaVaga, fmtQuando } from '../selecao-ui.js?v=6';
+import { ETAPAS, STATUS_VAGA } from '../config.js?v=7';
+import { $, $$, esc, iniciais, fmtData, st, pill, vazio, modal, toast, erroAmigavel, confirmar, hojeISO } from '../ui.js?v=7';
+import { carregar, prazoVaga, etapa, retornoPendente } from '../selecao.js?v=7';
+import { modalVaga, novoCandidato, moverEtapa, fichaCandidato, levarParaVaga, fmtQuando } from '../selecao-ui.js?v=7';
 
 let verFora = false, verAdm = false;
 
@@ -52,12 +52,18 @@ export async function render(el, ctx, id, abrirCand) {
   const recarregar = () => render(el, ctx, id);
   $('#voltar').onclick = () => { location.hash = window.__gpAnterior && window.__gpAnterior !== location.hash ? window.__gpAnterior : '#/vagas'; };
   $('#editar').onclick = async () => { if (await modalVaga(ctx, sel, v, { titulo: 'Editar vaga' })) recarregar(); };
-  const status = async (novo, texto, extra = {}) => { if (!(await confirmar(texto[0], texto[1], texto[2]))) return; try { await ctx.D.atualizar('vagas', v.id, { status: novo, ...extra }); await carregar(ctx, true); ctx.atualizarContadores(); toast('Vaga atualizada.'); recarregar(); } catch (e) { toast(erroAmigavel(e), 'erro'); } };
+  const status = async (novo, texto, extra = {}) => { if (!(await confirmar(texto[0], texto[1], texto[2]))) return; try { await ctx.D.atualizar('vagas', v.id, { status: novo, ...extra });
+      if (novo === 'cancelada' || novo === 'encerrada') { // quem ainda estava no processo volta para o banco de currículos
+        const motivo = novo === 'cancelada' ? 'Vaga cancelada' : 'Vaga encerrada', em = new Date().toISOString();
+        for (const c of ativos) await ctx.D.atualizar('candidatos', c.id, { situacao: 'banco', vagaId: null, motivo, retorno: null, retornoDevido: true, area: c.area || v.setor || '',
+          participacoes: [...(c.participacoes || []), { vagaCodigo: v.codigo, cargo: v.cargo, etapa: c.etapa, situacao: 'banco', motivo, ate: em }],
+          historico: [...(c.historico || []), { etapa: c.etapa, em, porNome: ctx.nome(), acao: motivo + ': voltou para o banco de currículos' }] });
+      } await carregar(ctx, true); ctx.atualizarContadores(); toast('Vaga atualizada.'); recarregar(); } catch (e) { toast(erroAmigavel(e), 'erro'); } };
   const b = s => $(s);
   if (b('#pausar')) b('#pausar').onclick = () => status('pausada', ['Pausar a vaga', 'Os candidatos ficam onde estão. O prazo para de aparecer como atrasado.', 'Pausar']);
-  if (b('#encerrar')) b('#encerrar').onclick = () => status('encerrada', ['Encerrar a vaga', ativos.length ? `Ainda há ${ativos.length} candidato(s) em andamento. Eles continuam na ficha da vaga; reprove ou leve para outra vaga se precisar.` : 'Encerrar esta vaga?', 'Encerrar'], { encerradaEm: hojeISO() });
+  if (b('#encerrar')) b('#encerrar').onclick = () => status('encerrada', ['Encerrar a vaga', ativos.length ? `Os ${ativos.length} candidato(s) ainda em andamento voltam para o banco de currículos, com retorno pendente.` : 'Encerrar esta vaga?', 'Encerrar'], { encerradaEm: hojeISO() });
   if (b('#reabrir')) b('#reabrir').onclick = () => status('aberta', ['Reabrir a vaga', 'A vaga volta para a lista de abertas.', 'Reabrir']);
-  if (b('#cancelar')) b('#cancelar').onclick = () => status('cancelada', ['Cancelar a vaga', 'A vaga sai das abertas e fica como cancelada.', 'Cancelar vaga']);
+  if (b('#cancelar')) b('#cancelar').onclick = () => status('cancelada', ['Cancelar a vaga', 'A vaga sai das abertas e fica como cancelada.' + (ativos.length ? ` Os ${ativos.length} candidato(s) em andamento voltam para o banco de currículos, com retorno pendente.` : ''), 'Cancelar vaga']);
   $('#novo').onclick = async () => { if (await novoCandidato(ctx, sel, { vagaId: v.id })) recarregar(); };
   $('#ver-fora').onchange = e => { verFora = e.target.checked; recarregar(); };
   if ($('#ver-adm')) $('#ver-adm').onchange = e => { verAdm = e.target.checked; recarregar(); };

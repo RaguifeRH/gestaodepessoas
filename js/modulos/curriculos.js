@@ -1,7 +1,7 @@
 // Banco de currículos: quem não está em andamento numa vaga (cadastrados, reprovados e desistentes).
-import { $, $$, esc, iniciais, tit, kpis, st, pill, fmtData, norm } from '../ui.js?v=6';
-import { carregar, retornoPendente, etapa } from '../selecao.js?v=6';
-import { novoCandidato, fichaCandidato, levarParaVaga, registrarRetorno } from '../selecao-ui.js?v=6';
+import { $, $$, esc, iniciais, tit, kpis, st, pill, fmtData, norm } from '../ui.js?v=7';
+import { carregar, retornoPendente, etapa } from '../selecao.js?v=7';
+import { novoCandidato, fichaCandidato, levarParaVaga, registrarRetorno } from '../selecao-ui.js?v=7';
 
 const F = { q: '', area: '', sit: '', n: 60 };
 
@@ -39,7 +39,7 @@ export async function render(el, ctx, p1, p2) {
 const ultima = c => ((c.historico || []).slice(-1)[0] || {}).em || c.criadoEm || '';
 
 function item(c) {
-  const hist = c.vagaCodigo ? `${c.situacao === 'banco' ? 'Ainda não entrevistado' : `Participou da <b>${esc(c.vagaCodigo)} ${esc(c.vagaCargo || '')}</b> · ${c.situacao === 'desistiu' ? 'desistiu' : 'reprovado'} em ${esc(etapa(c.etapa).nome.toLowerCase())}${c.motivo ? ': ' + esc(c.motivo.toLowerCase()) : ''}`}` : 'Ainda não participou de vaga';
+  const hist = c.vagaCodigo ? `${c.situacao === 'banco' && c.retornoDevido ? `Estava na <b>${esc(c.vagaCodigo)} ${esc(c.vagaCargo || '')}</b> em ${esc(etapa(c.etapa).nome.toLowerCase())} · ${esc((c.motivo || '').toLowerCase())}` : c.situacao === 'banco' ? 'Ainda não entrevistado' : `Participou da <b>${esc(c.vagaCodigo)} ${esc(c.vagaCargo || '')}</b> · ${c.situacao === 'desistiu' ? 'desistiu' : 'reprovado'} em ${esc(etapa(c.etapa).nome.toLowerCase())}${c.motivo ? ': ' + esc(c.motivo.toLowerCase()) : ''}`}` : 'Ainda não participou de vaga';
   const ret = retornoPendente(c);
   return `<div class="cv" data-c="${esc(c.id)}" style="cursor:pointer"><span class="av">${esc(iniciais(c.nome))}</span><div><b>${esc(c.nome)}</b><small>${esc([c.cidade, c.area, c.origem].filter(Boolean).join(' · '))} · ${fmtData(ultima(c).slice(0, 10))}</small><div class="hist"><i class="ti ti-history"></i> ${hist}${(c.participacoes || []).length ? ` · +${c.participacoes.length} vaga(s) antes` : ''}</div></div>
     <div style="display:grid;gap:8px;justify-items:end">${ret ? st('atr', 'Retorno pendente') : c.retorno ? st('ok', 'Retorno dado') : c.situacao === 'banco' ? pill('Disponível', 'ok') : ''}

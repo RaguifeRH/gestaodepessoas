@@ -1,10 +1,10 @@
 // ============================================================================
 // Vagas e seleção — janelas compartilhadas: vaga, candidato, mudança de etapa.
 // ============================================================================
-import { ETAPAS, MOTIVOS_REPROVA, ORIGENS, MOTIVOS_VAGA, EMPRESAS_PADRAO, PERFIS_PADRAO } from './config.js?v=6';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, modal, toast, erroAmigavel, confirmar, st, pill } from './ui.js?v=6';
-import { hashCpf, mascararCpf } from './fo1029.js?v=6';
-import { etapa, ordemEtapa, carregar, retornoPendente } from './selecao.js?v=6';
+import { ETAPAS, MOTIVOS_REPROVA, ORIGENS, MOTIVOS_VAGA, EMPRESAS_PADRAO, PERFIS_PADRAO } from './config.js?v=7';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, modal, toast, erroAmigavel, confirmar, st, pill } from './ui.js?v=7';
+import { hashCpf, mascararCpf } from './fo1029.js?v=7';
+import { etapa, ordemEtapa, carregar, retornoPendente } from './selecao.js?v=7';
 
 const SO = s => String(s || '').replace(/\D/g, '');
 export function cpfValido(c) {
@@ -242,7 +242,7 @@ export async function levarParaVaga(ctx, sel, c) {
       const v = abertas.find(x => x.id === $('#l-vaga', bg).value), ent = $('#l-ent', bg).value;
       const part = c.vagaId ? [...(c.participacoes || []), { vagaCodigo: c.vagaCodigo, cargo: c.vagaCargo, etapa: c.etapa, situacao: c.situacao, motivo: c.motivo || '', ate: new Date().toISOString() }] : (c.participacoes || []);
       try {
-        await ctx.D.atualizar('candidatos', c.id, { vagaId: v.id, vagaCodigo: v.codigo, vagaCargo: v.cargo, vagaSetor: v.setor || '', etapa: ent ? 'ent_ag' : 'triagem', situacao: 'andamento', motivo: '', retorno: null, resultadoEntrevista: '', checks: {}, datas: ent ? { entrevista: ent } : {}, participacoes: part,
+        await ctx.D.atualizar('candidatos', c.id, { vagaId: v.id, vagaCodigo: v.codigo, vagaCargo: v.cargo, vagaSetor: v.setor || '', etapa: ent ? 'ent_ag' : 'triagem', situacao: 'andamento', motivo: '', retorno: null, retornoDevido: false, resultadoEntrevista: '', checks: {}, datas: ent ? { entrevista: ent } : {}, participacoes: part,
           historico: [...(c.historico || []), { etapa: ent ? 'ent_ag' : 'triagem', em: new Date().toISOString(), porNome: ctx.nome(), acao: 'Levado para a vaga ' + v.codigo }] });
       } catch (e) { toast(erroAmigavel(e), 'erro'); return false; }
     } });
@@ -263,7 +263,7 @@ export async function fichaCandidato(ctx, id, aoMudar) {
   const corpo = `
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px"><span class="av">${esc(iniciais(c.nome))}</span><div><b style="font-size:17px;display:block">${esc(c.nome)}</b><small class="muted">${esc([c.tel, c.cidade, c.cpfMasc ? 'CPF ' + c.cpfMasc : 'sem CPF'].filter(Boolean).join(' · '))}</small></div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${pill(sit[0], sit[1])}${c.situacao === 'andamento' ? pill(etapa(c.etapa).nome, 'lim') : ''}${vaga ? pill(vaga.codigo + ' · ' + vaga.cargo) : ''}${c.area ? pill('Área: ' + c.area) : ''}${c.legado ? pill('Veio do sistema antigo') : ''}
-      ${['reprovado', 'desistiu'].includes(c.situacao) ? (c.retorno ? st('ok', 'Retorno dado' + (c.retorno.porNome ? ' por ' + c.retorno.porNome.split(' ')[0] : '')) : c.legado ? '' : st('atr', 'Retorno pendente')) : ''}</div>
+      ${['reprovado', 'desistiu'].includes(c.situacao) || c.retornoDevido ? (c.retorno ? st('ok', 'Retorno dado' + (c.retorno.porNome ? ' por ' + c.retorno.porNome.split(' ')[0] : '')) : c.legado ? '' : st('atr', 'Retorno pendente')) : ''}</div>
     ${c.situacao === 'andamento' ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;background:var(--orvalho-2);padding:10px;border-radius:12px"><label for="f-mover" class="small" style="font-weight:600">Mudar de etapa</label><select class="inp" id="f-mover" style="width:auto;flex:1;min-width:180px">${optsV(ETAPAS.map(e => [e.id, e.nome]), c.etapa)}</select><button class="btn sm prim" id="f-mover-b">Mover</button></div>` : ''}
     ${c.motivo ? `<div class="small" style="margin-bottom:8px"><b>Motivo:</b> ${esc(c.motivo)}</div>` : ''}
     <div class="dados" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px">
@@ -284,7 +284,7 @@ export async function fichaCandidato(ctx, id, aoMudar) {
     <ul class="tl">${(c.historico || []).slice().reverse().map(h => `<li><b>${esc(h.acao || etapa(h.etapa).nome)}</b><small>${fmtDataHora(h.em)}${h.porNome ? ' · ' + esc(h.porNome) : ''}</small>${h.obs ? `<div class="small" style="white-space:pre-wrap">${esc(h.obs)}</div>` : ''}</li>`).join('')}</ul>`;
   const botoes = [{ id: 'editar', texto: '<i class="ti ti-pencil"></i>Editar dados' }];
   if (c.situacao === 'andamento') { botoes.push({ id: 'tirar', texto: '<i class="ti ti-user-x"></i>Reprovar / desistiu' }); if (c.etapa === 'integracao') botoes.push({ id: 'admitir', texto: '<i class="ti ti-user-check"></i>Admitido', cls: 'prim' }); }
-  if (['reprovado', 'desistiu'].includes(c.situacao) && !c.retorno) botoes.push({ id: 'retorno', texto: '<i class="ti ti-message-check"></i>Retorno dado', cls: 'prim' });
+  if ((['reprovado', 'desistiu'].includes(c.situacao) || c.retornoDevido) && !c.retorno) botoes.push({ id: 'retorno', texto: '<i class="ti ti-message-check"></i>Retorno dado', cls: 'prim' });
   if (c.situacao !== 'andamento' && c.situacao !== 'contratado') botoes.push({ id: 'levar', texto: '<i class="ti ti-arrow-right"></i>Levar para uma vaga', cls: c.retorno || c.situacao === 'banco' ? 'prim' : '' });
   const r = await modal({ titulo: 'Candidato', corpo, larga: true, botoes,
     aoAbrir: bg => {

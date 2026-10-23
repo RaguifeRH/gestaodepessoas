@@ -1,5 +1,5 @@
 // Painel de RH: headcount, admissões, desligamentos e turnover (dados do FO1029).
-import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=6';
+import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=7';
 
 let filial = '';
 const NOMES_MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
