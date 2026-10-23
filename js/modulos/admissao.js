@@ -1,8 +1,8 @@
 // Admissão: checklist por perfil (quem fez e quando), cruzamento com o FO1029 pelo CPF,
 // documentos para imprimir, anexos e benefício do sindicato dos motoristas.
-import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=10';
-import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=10';
-import { carregar as carregarSelecao } from '../selecao.js?v=10';
+import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=11';
+import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=11';
+import { carregar as carregarSelecao } from '../selecao.js?v=11';
 
 let aba = 'andamento';
 
@@ -77,8 +77,8 @@ async function iniciar(ctx, A, base) {
 }
 
 async function manual(ctx, A) {
-  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=10');
-  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=10');
+  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=11');
+  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=11');
   let base = null;
   const r = await modal({ titulo: 'Admissão sem o R&S', corpo: `<p class="small muted" style="margin:0">Para quem não passou pelo kanban (transferência, recontratação direta, sócio…).</p>
       <div class="campo"><label for="m-nome">Nome completo</label><input class="inp" id="m-nome"></div>
