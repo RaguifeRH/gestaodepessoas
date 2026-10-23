@@ -124,7 +124,7 @@ export function itemResumo(id, pub) {
   const a = pub.atual || {};
   return { i: id, n: pub.nome, cm: pub.cpfMasc, m: a.matricula || '', e: a.empresa || '', f: a.filial || '', s: a.setor || '', c: a.cargo || '',
     t: a.tipo || '', st: a.status || '', g: pub.grupo || a.grupo || '', a: a.admissao || '', d: a.demissao || '', b: pub.nascMMDD || '', x: pub.sexo || '',
-    v: (pub.vinculos || []).map(v => [v.admissao || '', v.demissao || '']) };
+    v: (pub.vinculos || []).map(v => (v.admissao || '') + '|' + (v.demissao || '')) }; // texto 'adm|dem' (o Firestore não aceita lista dentro de lista)
 }
 
 // Filiais presentes no arquivo (para escolher o que importar).
