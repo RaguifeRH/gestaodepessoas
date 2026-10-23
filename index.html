@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Pessoas — Raguife</title>
+<meta name="theme-color" content="#01361d">
+<link rel="icon" href="img/raguife-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..900&family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.30.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="css/raguife.css">
+</head>
+<body>
+
+<div class="tela-cheia" id="carregando"><div style="display:grid;gap:14px;justify-items:center"><img src="img/raguife-logo.png" alt="Raguife" style="height:40px"><div class="girando" aria-label="Carregando"></div></div></div>
+
+<!-- ================= LOGIN ================= -->
+<section id="login" aria-label="Entrar" hidden>
+  <div class="lg-arte">
+    <img src="img/raguife-logo-branco.png" alt="Raguife">
+    <div>
+      <h1 class="d">Gestão de Pessoas</h1>
+      <p>Da vaga ao desligamento, tudo sobre cada pessoa em um só lugar.</p>
+      <div class="lg-trilho" aria-hidden="true"><span class="on"></span><i></i><span class="on"></span><i></i><span class="on"></span><i></i><span></span><i></i><span></span><i></i><span></span></div>
+    </div>
+    <small style="color:rgba(255,255,255,.45)">Grupo Raguife</small>
+  </div>
+  <div class="lg-form"><div id="lg-caixa" style="width:min(380px,100%)"></div></div>
+</section>
+
+<!-- ================= APP ================= -->
+<div id="app" hidden>
+  <aside class="lado" aria-label="Menu principal">
+    <div class="marca"><img src="img/raguife-logo-branco.png" alt="Raguife"><div>Gestão de Pessoas</div></div>
+    <nav class="menu" id="menu"></nav>
+    <div class="eu"><div class="av" id="eu-av">?</div><div style="min-width:0"><b id="eu-nome">—</b><small id="eu-perfil">—</small></div><button title="Sair" id="sair" aria-label="Sair"><i class="ti ti-logout"></i></button></div>
+  </aside>
+  <div>
+    <header class="topo">
+      <button class="ico-btn abrir-menu" id="abrir-menu" aria-label="Abrir menu"><i class="ti ti-menu-2"></i></button>
+      <div class="migalha" id="migalha"></div>
+      <label class="busca" id="busca-topo"><i class="ti ti-search"></i><span class="sr">Buscar</span><input readonly placeholder="Buscar pessoa ou módulo   Ctrl K"></label>
+      <button class="ico-btn" id="sino" aria-label="Pendências"><i class="ti ti-bell"></i></button>
+    </header>
+    <main id="conteudo"></main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

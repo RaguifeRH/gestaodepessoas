@@ -1,0 +1,36 @@
+rules_version = '2';
+// ============================================================================
+// Regras dos arquivos — Gestão de Pessoas Raguife
+// Publique em: Console do Firebase > Storage > Regras.
+// Na primeira publicação, o console pede para permitir que o Storage consulte
+// o Firestore (para ler o perfil do usuário). Clique em "Permitir".
+// ============================================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function perfil() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function ativo() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/usuarios/$(request.auth.uid))
+        && perfil().ativo == true;
+    }
+    function mod(m) { return ativo() && (perfil().perfil == 'admin' || m in perfil().modulos); }
+
+    // Documentos da pasta de cada pessoa: PDF ou imagem, até 15 MB.
+    match /pessoas/{pid}/{arquivo} {
+      allow read: if mod('pessoas');
+      allow create: if mod('pessoas')
+        && request.resource.size < 15 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf' || request.resource.contentType.matches('image/.*'));
+      allow update: if false;
+      allow delete: if ativo() && perfil().perfil == 'admin';
+    }
+
+    // Todo o resto: fechado.
+    match /{tudo=**} {
+      allow read, write: if false;
+    }
+  }
+}

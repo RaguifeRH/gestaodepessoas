@@ -1,0 +1,95 @@
+rules_version = '2';
+// ============================================================================
+// Regras do banco — Gestão de Pessoas Raguife (projeto raguife-pessoas)
+// Publique em: Console do Firebase > Firestore Database > Regras.
+//
+// Princípios:
+//  - Sem perfil ativo em usuarios/{uid}, estar logado não dá acesso a nada.
+//  - Cada módulo é liberado por usuário (campo "modulos"); admin vê tudo.
+//  - CPF completo, salário e documentos pessoais ficam em pessoas/{id}/privado
+//    e só são lidos com a permissão "sensiveis".
+//  - Registros do dossiê guardam quem fez (porUid) e não podem ser editados,
+//    só apagados pelo administrador.
+// ============================================================================
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function logado() { return request.auth != null; }
+    function caminhoUsuario() { return /databases/$(db)/documents/usuarios/$(request.auth.uid); }
+    function eu() { return get(caminhoUsuario()).data; }
+    function ativo() { return logado() && exists(caminhoUsuario()) && eu().ativo == true; }
+    function admin() { return ativo() && eu().perfil == 'admin'; }
+    function mod(m) { return ativo() && (eu().perfil == 'admin' || m in eu().modulos); }
+    function sistemaNovo() { return !exists(/databases/$(db)/documents/config/sistema); }
+    function souAutor() { return request.resource.data.porUid == request.auth.uid; }
+
+    // Configurações (não têm dados pessoais). "sistema" diz se o primeiro acesso já foi feito.
+    match /config/{id} {
+      allow get: if true;
+      allow list: if admin();
+      allow create: if (id == 'sistema' && logado() && sistemaNovo()
+                        && getAfter(caminhoUsuario()).data.perfil == 'admin')
+                    || (id != 'sistema' && admin());
+      allow update, delete: if admin();
+    }
+
+    // Usuários do sistema. Primeiro acesso: só rh@raguife.com.br, uma única vez.
+    match /usuarios/{uid} {
+      allow get: if logado() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      allow create: if admin()
+        || (logado() && uid == request.auth.uid && sistemaNovo()
+            && request.auth.token.email == 'rh@raguife.com.br'
+            && request.resource.data.perfil == 'admin' && request.resource.data.ativo == true);
+      allow update, delete: if admin();
+    }
+
+    // Lista compacta de pessoas (um documento só, para listas e painéis).
+    match /resumos/{id} {
+      allow read: if mod('pessoas') || mod('experiencia') || mod('painel_rh');
+      allow write: if mod('importar');
+    }
+
+    // Cadastro único: uma pessoa por CPF (id = hash do CPF).
+    match /pessoas/{pid} {
+      allow read: if mod('pessoas');
+      allow write: if mod('importar');
+
+      match /privado/{doc} {
+        allow read: if mod('sensiveis');
+        allow write: if mod('importar');
+      }
+      match /eventos/{ev} {
+        allow read: if mod('pessoas');
+        allow create: if (mod('pessoas') || mod('experiencia')) && souAutor();
+        allow update, delete: if admin();
+      }
+      match /anexos/{an} {
+        allow read: if mod('pessoas');
+        allow create: if mod('pessoas') && souAutor();
+        allow update, delete: if admin();
+      }
+    }
+
+    // Acompanhamento da experiência (id = hash do CPF).
+    match /experiencia/{pid} {
+      allow read: if mod('experiencia');
+      allow create, update: if mod('experiencia');
+      allow delete: if admin();
+    }
+
+    // Histórico das importações do FO1029.
+    match /importacoes/{id} {
+      allow read: if mod('importar');
+      allow create: if mod('importar') && souAutor();
+      allow update, delete: if false;
+    }
+
+    // Registro de atividades: todos registram, só o administrador lê. Ninguém altera.
+    match /logs/{id} {
+      allow create: if ativo() && souAutor();
+      allow read: if admin();
+      allow update, delete: if false;
+    }
+  }
+}
