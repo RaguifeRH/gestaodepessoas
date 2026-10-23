@@ -682,3 +682,4 @@ body.pagina-publica{background:var(--papel);min-height:100vh}
   .cv>div:last-child{grid-column:1/-1;justify-items:start!important}
   .cv>div:last-child>div{justify-content:flex-start!important}
 }
+.btn:disabled,.btn[disabled]{opacity:.5;cursor:not-allowed}

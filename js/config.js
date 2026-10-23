@@ -27,6 +27,7 @@ export const MODULOS = [
   { id:'vagas',        perm:'selecao', nome:'Vagas e seleção',   grupo:'Jornada do colaborador', ic:'ti-user-search',  acc:'verde' },
   { id:'curriculos',   perm:'selecao', nome:'Banco de currículos', grupo:'Jornada do colaborador', ic:'ti-id-badge-2', acc:'verde' },
   { id:'agenda',       perm:'selecao', nome:'Agenda do R&S',     grupo:'Jornada do colaborador', ic:'ti-calendar',     acc:'verde' },
+  { id:'admissao',    nome:'Admissão',              grupo:'Jornada do colaborador', ic:'ti-file-check',   acc:'verde', desc:'Checklist da admissão por perfil, cruzamento com o FO1029, documentos e benefício dos motoristas.' },
   { id:'selecao',     nome:'Vagas e seleção (R&S)', grupo:null, ic:'ti-user-search', acc:'verde', desc:'Pedidos de vaga, aprovação do N2, vagas, candidatos, banco de currículos e agenda.' },
   { id:'pessoas',     nome:'Pessoas e dossiê',      grupo:'Jornada do colaborador', ic:'ti-folder-open',  acc:'verde', desc:'Busca, ficha, vínculos, linha do tempo e documentos.' },
   { id:'experiencia', nome:'Experiência',           grupo:'Jornada do colaborador', ic:'ti-hourglass',    acc:'verde', desc:'Marcos de 10, 30, 45, 60 e 90 dias.' },
@@ -86,3 +87,37 @@ export const STATUS_SOL = {
   reprovado:    ['Reprovada pelo RH', 'atr'],
 };
 export const STATUS_VAGA = { aberta:['Aberta','ok'], pausada:['Pausada','hoje'], encerrada:['Encerrada',''], cancelada:['Cancelada','atr'] };
+
+// ---------------------------------------------------------------------------
+// Admissão (checklist do novaRH; o RH pode editar em Admissão → Configurar)
+// ---------------------------------------------------------------------------
+export const ADM_SECOES = [
+  { id:'documentos', nome:'Documentos recebidos', ic:'ti-files' },
+  { id:'cadastro',   nome:'Registro nos sistemas', ic:'ti-device-desktop' },
+  { id:'integracao', nome:'Integração', ic:'ti-users' },
+];
+export const ADM_PERFIS_PADRAO = [
+  { id:'geral', nome:'Geral' }, { id:'operacional', nome:'Operacional' }, { id:'adm', nome:'Administrativo' }, { id:'comercial', nome:'Comercial' },
+  { id:'motorista', nome:'Motorista' }, { id:'ajudante_de_motorista', nome:'Ajudante de motorista' }, { id:'lideranca', nome:'Liderança' }, { id:'pcd', nome:'PCD' },
+];
+// perfis: [] = vale para todos. auto: campo do FO1029 que, preenchido, confirma o item sozinho.
+export const ADM_ITENS_PADRAO = [
+  ['d01','documentos','CPF','',[],'cpf'],['d02','documentos','Identidade (RG)','',[],'rg'],['d03','documentos','PIS-PASEP','',[],'pis'],['d04','documentos','CTPS','',[],'ctps'],
+  ['d05','documentos','Título de Eleitor','',[],'titulo'],['d06','documentos','Data de Nascimento','',[],'nascimento'],['d07','documentos','Endereço completo','',[],'endereco'],
+  ['d08','documentos','Telefone celular','',[],'celular'],['d09','documentos','Dados bancários (banco/agência/conta)','',[],''],['d10','documentos','CNH','Obrigatório para motoristas',['motorista'],''],
+  ['d11','documentos','Laudo médico com CID','Somente PCD',['pcd'],''],['d12','documentos','Certidão civil (nascimento/casamento/divórcio/viuvez)','',[],''],
+  ['d13','documentos','Comprovante de residência com CEP','',[],''],['d14','documentos','ASO recebido com status APTO','',[],''],['d15','documentos','Avaliação psicossocial realizada','',[],''],
+  ['d16','documentos','Certificado de Reservista','Sexo masculino',[],'reservista',true],
+  ['c01','cadastro','E-mail de integração enviado até 12h do dia anterior','',[],''],['c02','cadastro','Chapa FU conferida e registrada corretamente (MIX)','',[],'chapa'],
+  ['c03','cadastro','DAF preenchido e salvo (MIX)','',[],''],['c04','cadastro','Colaborador incluído no COLAB (MIX)','',[],''],['c05','cadastro','USU criado e validado (grupo, senha, ponto)','',[],''],
+  ['c06','cadastro','Envio do evento admissional ao eSocial conferido (MESO)','',[],''],['c07','cadastro','Ficha de Registro impressa','',[],''],['c08','cadastro','Contrato de Trabalho impresso','',[],''],
+  ['c09','cadastro','Contrato de Experiência impresso','',[],''],['c10','cadastro','Colaborador incluído no Exata (relógio/barreira)','',[],''],['c11','cadastro','Cadastro realizado no Secullum','',[],''],
+  ['c12','cadastro','Eva Benefícios cadastrado corretamente','',[],''],['c13','cadastro','Mediquo vinculado','',[],''],['c14','cadastro','Termo de Consentimento LGPD impresso','',[],''],
+  ['c15','cadastro','Autorização de Uso de Imagem impressa','',[],''],['c16','cadastro','FU cargo de confiança/gratificação lançada','',['lideranca','adm'],'',true],
+  ['c17','cadastro','Declaração de Trabalho Externo impressa','',['motorista','adm'],'',true],
+  ['i01','integracao','Integração realizada pelo RH','',[],''],['i02','integracao','Integração realizada pela psicóloga organizacional','',[],''],
+  ['i03','integracao','Integração realizada pelo Controle de Qualidade','',[],''],['i04','integracao','Integração realizada pela Segurança','',[],''],['i05','integracao','Kit de boas-vindas entregue','',[],''],
+].map(([id, secao, texto, it, perfis, auto, opcional]) => ({ id, secao, texto, it, perfis, auto, opcional: !!opcional }));
+// Perfil sugerido pelo perfil da vaga do R&S.
+export const PERFIL_VAGA_ADM = { 'Operacional':'operacional', 'Administrativo':'adm', 'Motorista':'motorista', 'Ajudante de motorista':'ajudante_de_motorista', 'Gestão':'lideranca', 'PCD':'pcd', 'Manutenção':'operacional', 'Comercial':'comercial' };
+export const SINDICATO_MOTORISTAS = /motorista/i; // sindicato que dá a escolha entre cesta básica e ticket

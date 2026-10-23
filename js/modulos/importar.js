@@ -1,6 +1,6 @@
 // Importar FO1029 — atualiza o cadastro único pelo relatório da folha.
-import { $, $$, esc, tit, card, kpis, fmtNum, fmtDataHora, toast, erroAmigavel, confirmar } from '../ui.js?v=7';
-import { lerArquivo, montar, filiaisDasLinhas, NOME_GRUPO } from '../fo1029.js?v=7';
+import { $, $$, esc, tit, card, kpis, fmtNum, fmtDataHora, toast, erroAmigavel, confirmar } from '../ui.js?v=9';
+import { lerArquivo, montar, filiaisDasLinhas, NOME_GRUPO } from '../fo1029.js?v=9';
 
 export async function render(el, ctx) {
   const hist = await ctx.D.importacoes().catch(() => []);

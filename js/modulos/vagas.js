@@ -1,8 +1,8 @@
 // Vagas e seleção: lista de vagas com prazo e funil de candidatos.
-import { ETAPAS, STATUS_VAGA } from '../config.js?v=7';
-import { $, $$, esc, tit, kpis, st, fmtData, vazio, norm } from '../ui.js?v=7';
-import { carregar, prazoVaga, retornoPendente } from '../selecao.js?v=7';
-import { modalVaga } from '../selecao-ui.js?v=7';
+import { ETAPAS, STATUS_VAGA } from '../config.js?v=9';
+import { $, $$, esc, tit, kpis, st, fmtData, vazio, norm } from '../ui.js?v=9';
+import { carregar, prazoVaga, retornoPendente } from '../selecao.js?v=9';
+import { modalVaga } from '../selecao-ui.js?v=9';
 
 let filtro = 'aberta', busca = '';
 

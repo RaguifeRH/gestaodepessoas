@@ -1,12 +1,13 @@
 // Dados dos sistemas antigos: importa os backups (.json) gerados em 22/10/2026.
 // Os sistemas antigos não são alterados: o backup é só lido.
-import { ETAPAS } from '../config.js?v=7';
-import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=7';
-import { carregar, normalizarMotivo } from '../selecao.js?v=7';
+import { ETAPAS } from '../config.js?v=9';
+import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=9';
+import { carregar, normalizarMotivo } from '../selecao.js?v=9';
+import { hashCpf, mascararCpf } from '../fo1029.js?v=9';
 
 const SISTEMAS = [
-  { id: 'novaRH', nome: 'Raguife (novaRH) · Vagas e seleção', etapa: 2, desc: 'Pedidos de vaga, N2, vagas, candidatos, banco de talentos e agenda do R&S.' },
-  { id: 'novaRH-adm', nome: 'Raguife (novaRH) · Admissão, dossiê, rescisão e movimentações', etapa: 3, desc: 'Entra junto com a etapa 3 e 4.' },
+  { id: 'novaRH', nome: 'Raguife (novaRH) · Vagas, seleção e admissão', etapa: 2, desc: 'Pedidos de vaga, N2, vagas, candidatos, banco de talentos, agenda do R&S, processos de admissão e lista de motoristas (cesta/ticket).' },
+  { id: 'novaRH-adm', nome: 'Raguife (novaRH) · Dossiê, rescisão e movimentações', etapa: 4, desc: 'Entra com a etapa 4.' },
   { id: 'beneficios', nome: 'Benefícios', etapa: 5, desc: 'Entra com o portal do funcionário.' },
   { id: 'indicadores', nome: 'Indicadores', etapa: 6, desc: 'Entra com os indicadores das áreas.' },
   { id: 'jornal', nome: 'Jornal', etapa: 5, desc: 'Entra com o portal do funcionário.' },
@@ -37,10 +38,12 @@ async function previa(el, ctx, arquivo) {
   try { bk = JSON.parse(await arquivo.text()); } catch (e) { box.innerHTML = '<div class="erro-msg">Não consegui ler o arquivo. Use o .json gerado pela ferramenta de backup.</div>'; return; }
   if (!bk.colecoes || (bk.sistema !== 'novaRH' && bk.projeto !== 'novarh-4fbc6')) { box.innerHTML = `<div class="erro-msg">Este backup é do sistema "${esc(bk.sistema || '?')}". Escolha o backup do novaRH (backup_novarh-4fbc6_….json).</div>`; return; }
   const m = montar(bk.colecoes);
+  Object.assign(m, await montarAdm(bk.colecoes));
   const sel = await carregar(ctx, true);
-  const existentes = { solicitacoes: new Map(sel.solicitacoes.map(x => [x.id, x])), vagas: new Map(sel.vagas.map(x => [x.id, x])), candidatos: new Map(sel.candidatos.map(x => [x.id, x])) };
+  const [admEx, motEx] = await Promise.all([ctx.D.listar('admissoes').catch(() => []), ctx.D.listar('motoristas').catch(() => [])]);
+  const existentes = { solicitacoes: new Map(sel.solicitacoes.map(x => [x.id, x])), vagas: new Map(sel.vagas.map(x => [x.id, x])), candidatos: new Map(sel.candidatos.map(x => [x.id, x])), admissoes: new Map(admEx.map(x => [x.id, x])), motoristas: new Map(motEx.map(x => [x.id, x])) };
   const ops = []; const st = { novos: 0, atualizados: 0, mantidos: 0 };
-  for (const col of ['solicitacoes', 'vagas', 'candidatos']) {
+  for (const col of ['solicitacoes', 'vagas', 'candidatos', 'admissoes', 'motoristas']) {
     for (const [id, dados] of m[col]) {
       const ja = existentes[col].get(id);
       if (ja && ja.editadoEm) { st.mantidos++; continue; } // mexido no sistema novo: não sobrescreve
@@ -50,7 +53,7 @@ async function previa(el, ctx, arquivo) {
   }
   m.agenda.forEach(([id, dados]) => ops.push({ caminho: ['agenda_antiga', id], dados }));
   box.innerHTML = card('Conferir antes de gravar', kpis([['Pedidos de vaga', fmtNum(m.solicitacoes.length), 'com o histórico do N2'], ['Vagas', fmtNum(m.vagas.length), m.vagas.filter(v => v[1].status === 'aberta').length + ' abertas hoje'], ['Candidatos', fmtNum(m.candidatos.length), m.candidatos.filter(c => c[1].situacao === 'banco').length + ' do banco de talentos · ' + m.candidatos.filter(c => c[1].situacao === 'contratado').length + ' admitidos'], ['Agenda antiga', fmtNum(m.agenda.length), 'entrevistas e testes']])
-    + `<p class="small" style="margin:12px 0 4px">Listas: ${m.cfg.setores.length} setores, ${m.cfg.perfis.length} perfis com prazo, ${m.n2.length} N2. Backup gerado em ${fmtDataHora(bk.geradoEm)}.</p>
+    + `<p class="small" style="margin:12px 0 4px">Admissão: ${m.admissoes.length} processos com checklist (${m.admissoes.filter(a => a[1].status === 'andamento').length} em andamento) · ${m.motoristas.length} motoristas com a opção cesta/ticket. Os ${m.admImportados} processos que só copiavam o FO1029 não são trazidos (o FO1029 já está aqui).</p><p class="small" style="margin:0 0 4px">Listas: ${m.cfg.setores.length} setores, ${m.cfg.perfis.length} perfis com prazo, ${m.n2.length} N2. Backup gerado em ${fmtDataHora(bk.geradoEm)}.</p>
        <p class="small" style="margin:0 0 12px">${st.novos} registros novos · ${st.atualizados} já importados antes (serão atualizados) · ${st.mantidos} alterados aqui (mantidos como estão).</p>
        <div class="progresso" id="mg-prog" hidden><i></i></div><div id="mg-msg"></div>
        <div style="display:flex;gap:8px;margin-top:12px"><button class="btn prim" id="mg-ok"><i class="ti ti-database-import"></i>Gravar no sistema novo</button><button class="btn ghost" id="mg-x">Cancelar</button></div>`);
@@ -128,4 +131,25 @@ function montar(C) {
     cfg: { setores: [...new Set(docs('sol_setores').map(([, s]) => cap(s.nome)).filter(Boolean))], perfis: [...perfisMap.values()], empresas: [...new Set(vagasAnt.map(([, v]) => v.empresa).filter(e => e && e.length > 8))] },
     n2: docs('sol_n2s').map(([, n]) => ({ nome: cap(n.nome), email: (n.email || '').toLowerCase(), setor: cap(n.setor) })).filter(n => n.nome),
   };
+}
+
+// Admissão (processos com checklist) e lista de motoristas do sindicato.
+async function montarAdm(C) {
+  const docs = col => Object.entries(C[col] || {}).map(([id, x]) => [id, x.dados || x]);
+  const agora = new Date().toISOString();
+  const iso = d => { const t = String(d || ''); const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(t); return m ? `${m[3]}-${m[2]}-${m[1]}` : /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0, 10) : ''; };
+  const todos = docs('adm_processos');
+  const admissoes = [];
+  for (const [id, p] of todos.filter(([, p]) => p.status !== 'importado')) {
+    const dd = p.dados || {}; const cpf = String(dd.cpf || '').replace(/\D/g, '');
+    const checks = {};
+    Object.entries(p.checks || {}).forEach(([k, v]) => { if (v === 'na') checks[k] = 'na'; else if (v && v.done) checks[k] = { em: v.data || '', porNome: cap(v.resp), obs: v.obs || '', legado: true }; });
+    admissoes.push([id, { nome: cap(dd.nome), pid: cpf.length >= 9 ? await hashCpf(cpf) : '', cpfMasc: cpf.length >= 9 ? mascararCpf(cpf) : '', cargo: cap(dd.cargo), setor: cap(dd.estrutura), filial: cap(dd.filial), matricula: dd.matricula || '', admissao: iso(dd.admissao), dataIntegracao: iso(dd.admissao),
+      perfil: p.perfil || 'geral', status: p.status === 'concluido' ? 'concluido' : 'andamento', checks, obs: p.obs || '',
+      papeis: { ...(p.brigadista ? { brigadista: p.brigadista } : {}), ...(p.cipa ? { cipa: p.cipa } : {}), ...(p.multiplicador ? { multiplicador: p.multiplicador } : {}) },
+      historico: (p.historico || []).map(h => ({ dt: h.dt || '', acao: { PROCESSO_CRIADO: 'Admissão iniciada', SALVO: 'Checklist salvo' }[h.acao] || cap(String(h.acao || '').replace(/_/g, ' ')), por: h.por || '' })).slice(-50),
+      ...(p.status === 'concluido' ? { concluidoEm: (p.atualizadoEm || p.criadoEm || '') } : {}), criadoEm: p.criadoEm || '', legado: true, importadoEm: agora }]);
+  }
+  const motoristas = docs('gp_motoristas').map(([id, x]) => ['L' + String(id).replace(/[^\w-]/g, '_'), { nome: cap(x.nome), cargo: cap(x.cargo), setor: cap(x.depto), admissao: iso(x.admissao), opcao: x.opcao === 'TICKET' ? 'Ticket' : x.opcao ? 'Cesta básica' : '', opcaoProx: x.opcaoProx ? (x.opcaoProx === 'TICKET' ? 'Ticket' : 'Cesta básica') : '', compProx: x.compProx || '', sindicato: x.sindicato || '', status: x.status || '', origem: 'Sistema antigo', legado: true, importadoEm: agora }]);
+  return { admissoes, motoristas, admImportados: todos.length - admissoes.length };
 }

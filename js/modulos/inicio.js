@@ -1,7 +1,7 @@
 // Início: saudação, trilha com números reais, pendências do dia e atalhos.
-import { esc, fmtNum, fmtData, st, card, iniciais } from '../ui.js?v=7';
-import { emExperiencia, pendenciasExperiencia, aniversariantes } from '../pendencias.js?v=7';
-import { carregar as carregarSelecao, pendenciasSelecao } from '../selecao.js?v=7';
+import { esc, fmtNum, fmtData, st, card, iniciais } from '../ui.js?v=9';
+import { emExperiencia, pendenciasExperiencia, aniversariantes } from '../pendencias.js?v=9';
+import { carregar as carregarSelecao, pendenciasSelecao } from '../selecao.js?v=9';
 
 export async function render(el, ctx) {
   const h = new Date().getHours(), oi = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
@@ -19,12 +19,13 @@ export async function render(el, ctx) {
   const sel = ctx.pode('selecao') ? await carregarSelecao(ctx).catch(() => null) : null;
   const vagasAb = sel ? sel.vagas.filter(v => v.status === 'aberta' && v.codigo !== 'BT-0001') : [];
   const emSel = sel ? sel.candidatos.filter(c => c.situacao === 'andamento') : [];
+  const admAnd = ctx.pode('admissao') ? (await ctx.D.listar('admissoes').catch(() => [])).filter(a => a.status === 'andamento').length : null;
   const pedAb = sel ? sel.solicitacoes.filter(s => ['pendente', 'com_n2', 'aprovado_n2'].includes(s.status)).length : 0;
 
   const est = [
     sel ? ['#/vagas', '1', 'Vaga', `${vagasAb.length} aberta${vagasAb.length === 1 ? '' : 's'}${pedAb ? ' · ' + pedAb + ' pedido' + (pedAb > 1 ? 's' : '') : ''}`, false] : ['#/inicio', '1', 'Vaga', '—', true],
     sel ? ['#/vagas', '2', 'Seleção', `${emSel.filter(c => c.etapa !== 'integracao').length} em processo`, false] : ['#/inicio', '2', 'Seleção', '—', true],
-    ['#/inicio', '3', 'Admissão', sel ? `${emSel.filter(c => c.etapa === 'integracao').length} com integração marcada` : 'Próxima etapa do sistema', !sel],
+    admAnd !== null ? ['#/admissao', '3', 'Admissão', `${admAnd} em andamento`, false] : ['#/inicio', '3', 'Admissão', sel ? `${emSel.filter(c => c.etapa === 'integracao').length} com integração marcada` : '—', !sel],
     ['#/experiencia', '4', 'Experiência', vePessoas ? `${exp.length} pessoas${hj ? ' · ' + hj + ' marcos hoje' : ''}` : '—', false],
     ['#/pessoas', '5', 'Ativos', vePessoas ? `${fmtNum(ativos)} colaboradores` : '—', false],
     ['#/pessoas', '6', 'Rescisão', vePessoas ? `${desl} em desligamento` : '—', false],
@@ -49,7 +50,7 @@ export async function render(el, ctx) {
     <section class="card"><div class="card-h"><h3 class="d">Para hoje</h3></div><div class="card-b">${tarefas.length ? `<ul class="tarefas">${tarefas.map(t => `<li><span class="tipo ${t[0]}"><i class="ti ${t[1]}"></i></span><div><b>${esc(t[2])}</b><small>${esc(t[3])}</small></div><a class="btn sm" href="${t[5]}">${t[4]}</a></li>`).join('')}</ul>` : '<p class="muted" style="margin:6px 0">Nada pendente para você agora.</p>'}</div></section>
     <div style="display:grid;gap:20px;align-content:start">
       ${ctx.pode('pessoas') ? card('Aniversariantes da semana', aniv.length ? `<ul class="agenda">${aniv.slice(0, 8).map(a => `<li><span class="hora">${a.dia === 0 ? 'Hoje' : esc(a.pessoa.b.split('-').reverse().join('/'))}</span><div><b><a href="#/pessoa/${a.pessoa.i}" style="text-decoration:none">${esc(a.pessoa.n)}</a></b><small>${esc(a.pessoa.c)} · ${esc(a.pessoa.f)}</small></div></li>`).join('')}</ul>` : '<p class="muted small" style="margin:0">Ninguém faz aniversário nos próximos 7 dias.</p>') : ''}
-      ${card('Atalhos', `<div style="display:flex;gap:8px;flex-wrap:wrap">${ctx.pode('selecao') ? '<a class="btn" href="#/vagas"><i class="ti ti-user-search"></i>Vagas</a><a class="btn" href="#/curriculos"><i class="ti ti-id-badge-2"></i>Currículos</a>' : ''}${ctx.pode('pessoas') ? '<a class="btn" href="#/pessoas"><i class="ti ti-folder-open"></i>Pessoas</a>' : ''}${ctx.pode('importar') ? '<a class="btn" href="#/importar"><i class="ti ti-file-import"></i>Importar FO1029</a>' : ''}${ctx.pode('painel_rh') ? '<a class="btn" href="#/painel_rh"><i class="ti ti-chart-bar"></i>Painel de RH</a>' : ''}${ctx.admin() ? '<a class="btn" href="#/usuarios"><i class="ti ti-shield-lock"></i>Usuários</a>' : ''}</div>`)}
+      ${card('Atalhos', `<div style="display:flex;gap:8px;flex-wrap:wrap">${ctx.pode('selecao') ? '<a class="btn" href="#/vagas"><i class="ti ti-user-search"></i>Vagas</a><a class="btn" href="#/curriculos"><i class="ti ti-id-badge-2"></i>Currículos</a>' : ''}${ctx.pode('admissao') ? '<a class="btn" href="#/admissao"><i class="ti ti-file-check"></i>Admissão</a>' : ''}${ctx.pode('pessoas') ? '<a class="btn" href="#/pessoas"><i class="ti ti-folder-open"></i>Pessoas</a>' : ''}${ctx.pode('importar') ? '<a class="btn" href="#/importar"><i class="ti ti-file-import"></i>Importar FO1029</a>' : ''}${ctx.pode('painel_rh') ? '<a class="btn" href="#/painel_rh"><i class="ti ti-chart-bar"></i>Painel de RH</a>' : ''}${ctx.admin() ? '<a class="btn" href="#/usuarios"><i class="ti ti-shield-lock"></i>Usuários</a>' : ''}</div>`)}
     </div>
   </div>`;
 }

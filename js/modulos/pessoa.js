@@ -1,7 +1,7 @@
 // Pasta da pessoa: jornada, linha do tempo, documentos, vínculos e dados.
-import { TIPOS_EVENTO } from '../config.js?v=7';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=7';
-import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=7';
+import { TIPOS_EVENTO } from '../config.js?v=9';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=9';
+import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=9';
 
 export async function render(el, ctx, id) {
   const p = await ctx.D.pessoa(id);
@@ -83,6 +83,15 @@ export async function render(el, ctx, id) {
     if (r === 'enviar') { toast('Documento anexado.'); render(el, ctx, id); setTimeout(() => $('[data-p="docs"]').click(), 0); }
   };
 
+  // De onde veio: vaga do R&S, pedido do gestor e processo de admissão (cruzamento pelo CPF).
+  (async () => {
+    const [adm, cand] = await Promise.all([ctx.pode('admissao') ? ctx.D.listarOnde('admissoes', 'pid', id).catch(() => []) : [], ctx.pode('selecao') ? ctx.D.listarOnde('candidatos', 'pid', id).catch(() => []) : []]);
+    const a1 = adm.sort((x, y) => (y.criadoEm || '').localeCompare(x.criadoEm || ''))[0], c1 = cand.find(c => c.situacao === 'contratado') || cand[0];
+    const vaga = (a1 && a1.vagaCodigo) || (c1 && c1.vagaCodigo), sol = a1 && a1.solicitacaoCodigo;
+    const meta = $('.pessoa-h .meta'); if (!meta) return;
+    if (vaga) meta.insertAdjacentHTML('beforeend', `<span><i class="ti ti-user-search"></i>Vaga ${esc(vaga)}${sol ? ' · pedido ' + esc(sol) : ''}</span>`);
+    if (a1) meta.insertAdjacentHTML('beforeend', `<span><a href="#/admissao/${esc(a1.id)}" style="color:inherit"><i class="ti ti-file-check"></i>Admissão ${a1.status === 'concluido' ? 'concluída' : 'em andamento'}</a></span>`);
+  })();
   $('#voltar').onclick = () => { location.hash = window.__gpAnterior || '#/pessoas'; };
   $('#imprimir').onclick = () => {
     const w = window.open('', '_blank'); if (!w) return toast('Permita pop-ups para imprimir.', 'erro');

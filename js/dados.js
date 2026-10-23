@@ -2,8 +2,8 @@
 // Camada de dados — todo acesso ao banco passa por aqui.
 // Dois modos: Firebase (real) e demonstração (fictício, só neste navegador).
 // ============================================================================
-import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=7';
-import { itemResumo, montar } from './fo1029.js?v=7';
+import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=9';
+import { itemResumo, montar } from './fo1029.js?v=9';
 
 const agora = () => new Date().toISOString();
 const LOTE = 400; // operações por lote de gravação (limite do Firestore é 500)
@@ -120,6 +120,7 @@ async function criarFirebase() {
 
     // ---- coleções simples (vagas e seleção) ----
     listar: col => lerCol(c(col)),
+    listarOnde: (col, campo, valor) => lerCol(F.query(c(col), F.where(campo, '==', valor))),
     ler: (col, id) => lerDoc(col, id),
     lerSub: (col, id, sub, doc) => lerDoc(col, id, sub, doc),
     async criar(col, dados) { const r = await F.addDoc(c(col), { ...dados, criadoEm: agora(), porUid: usuarioAuth.uid }); return r.id; },
@@ -210,6 +211,7 @@ async function criarDemo() {
     async importacoes() { return B.importacoes.slice(0, 20); },
     async entrarAnonimo() {},
     async listar(col) { return Object.entries(B.cols[col] || {}).map(([id, x]) => ({ id, ...clone(x) })); },
+    async listarOnde(col, campo, valor) { return (await this.listar(col)).filter(x => x[campo] === valor); },
     async ler(col, id) { const x = (B.cols[col] || {})[id]; return x ? { id, ...clone(x) } : null; },
     async lerSub(col, id, sub, doc) { return clone((B.subs[col + '/' + id + '/' + sub] || {})[doc] || null); },
     async criar(col, dados) { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); (B.cols[col] = B.cols[col] || {})[id] = { ...clone(dados), criadoEm: agora(), porUid: logado?.uid || 'anon' }; salvar(); return id; },

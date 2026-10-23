@@ -1,4 +1,4 @@
-# Gestão de Pessoas — Raguife · Etapas 1 e 2
+# Gestão de Pessoas — Raguife · Etapas 1 a 3
 
 Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **raguife-pessoas**.
 
@@ -21,6 +21,16 @@ Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **ragu
 - **Dados dos sistemas antigos** (administrador): importa o backup do novaRH. Pode repetir; não sobrescreve o que foi alterado aqui.
 - Libere o módulo **Vagas e seleção (R&S)** para a equipe em Usuários e acessos.
 - Requer o login **Anônimo** ativo no Firebase (Authentication → Método de login) para as páginas do gestor e do N2.
+
+## Etapa 3 — Admissão
+- **Para iniciar**: candidatos do R&S com integração marcada ou admitidos, e admitidos novos do FO1029 sem processo.
+- **Checklist por perfil** (os 38 itens do novaRH, editáveis em "Configurar checklist"), cada item com quem marcou e quando, "não se aplica" e histórico.
+- **Cruzamento com o FO1029 pelo CPF**: mostra a matrícula e confirma sozinho os documentos que já estão na folha (precisa da permissão Dados sensíveis).
+- **Impressões**: checklist para o dossiê, lista de documentos para o candidato, termos de adesão ao plano de saúde e odontológico (modelo provisório).
+- **Sindicato dos motoristas**: escolha cesta básica ou ticket grava na lista de motoristas.
+- **Concluir**: registra "Admissão" na linha do tempo da pessoa e marca o candidato como admitido.
+- A pasta da pessoa mostra a vaga e o pedido de origem e o link da admissão.
+- Libere o módulo **Admissão** para a equipe.
 
 ## Como publicar (uma vez)
 

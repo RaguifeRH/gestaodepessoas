@@ -1,7 +1,7 @@
 // Banco de currículos: quem não está em andamento numa vaga (cadastrados, reprovados e desistentes).
-import { $, $$, esc, iniciais, tit, kpis, st, pill, fmtData, norm } from '../ui.js?v=7';
-import { carregar, retornoPendente, etapa } from '../selecao.js?v=7';
-import { novoCandidato, fichaCandidato, levarParaVaga, registrarRetorno } from '../selecao-ui.js?v=7';
+import { $, $$, esc, iniciais, tit, kpis, st, pill, fmtData, norm } from '../ui.js?v=9';
+import { carregar, retornoPendente, etapa } from '../selecao.js?v=9';
+import { novoCandidato, fichaCandidato, levarParaVaga, registrarRetorno } from '../selecao-ui.js?v=9';
 
 const F = { q: '', area: '', sit: '', n: 60 };
 

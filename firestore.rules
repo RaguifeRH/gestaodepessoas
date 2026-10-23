@@ -118,6 +118,24 @@ service cloud.firestore {
         allow update, delete: if admin();
       }
     }
+    // ---------------------------------------------------------------------
+    // Admissão
+    // ---------------------------------------------------------------------
+    match /admissoes/{id} {
+      allow read, create, update: if mod('admissao');
+      allow delete: if admin();
+      match /anexos/{an} {
+        allow read: if mod('admissao');
+        allow create: if mod('admissao') && souAutor();
+        allow update, delete: if admin();
+      }
+    }
+    // Motoristas do sindicato: opção cesta básica ou ticket (usada em Movimentações).
+    match /motoristas/{id} {
+      allow read, create, update: if mod('admissao') || mod('movimentacoes');
+      allow delete: if admin();
+    }
+
     // Agenda do R&S do sistema antigo (só leitura) e registro das migrações.
     match /agenda_antiga/{id} {
       allow read: if mod('selecao');
