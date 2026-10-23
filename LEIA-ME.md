@@ -38,6 +38,13 @@ Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **ragu
 - **Histórico do novaRH** (Dados dos sistemas antigos): linha do tempo do dossiê, experiência, rescisões e movimentações. Importe o FO1029 antes.
 - Libere os módulos **Rescisão** e **Movimentações**.
 
+## Etapa 4b — Tabela salarial, Guia RH e Equipe RH
+- **Tabela salarial**: cargos × faixas A–F por área/setor/tabela, cargo e faixa ao efetivar, reajuste em lote com histórico, planilha para baixar e **conferência com os salários do FO1029** (exige Dados sensíveis).
+- **Guia RH**: fases e etapas com passos, responsáveis, perfis e documentos; busca. Todos leem, só o administrador edita.
+- **Equipe RH**: demandas com prazo, prioridade e recorrência (a próxima nasce ao concluir), KPI de entrega no prazo por pessoa, quem é quem e funções.
+- Importação em Dados dos sistemas antigos → "Tabela salarial, Guia RH e Equipe RH" (backup a partir de 23/10).
+- Libere os módulos **Tabela salarial** e **Equipe RH**.
+
 ## Como publicar (uma vez)
 
 ### 1. Publicar os arquivos no GitHub Pages

@@ -2,16 +2,16 @@
 // Gestão de Pessoas — Raguife · casca do sistema
 // Login, primeiro acesso, menu por permissão, rotas, busca rápida e pendências.
 // ============================================================================
-import { D } from './dados.js?v=12';
-import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=12';
-import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=12';
-import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=12';
-import { carregar as carregarSelecao, pendenciasSelecao } from './selecao.js?v=12';
+import { D } from './dados.js?v=13';
+import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=13';
+import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=13';
+import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=13';
+import { carregar as carregarSelecao, pendenciasSelecao } from './selecao.js?v=13';
 
 const ctx = {
   D, perfil: null, uid: null,
   _sel: null,
-  pode(m) { const p = this.perfil; return !!p && p.ativo !== false && (p.perfil === 'admin' || (p.modulos || []).includes(m)); },
+  pode(m) { const p = this.perfil; return !!p && p.ativo !== false && (p.perfil === 'admin' || m === 'guia' || (p.modulos || []).includes(m)); },
   admin() { return this.perfil && this.perfil.perfil === 'admin'; },
   nome() { return (this.perfil && this.perfil.nome) || ''; },
   _resumo: null,
@@ -191,7 +191,7 @@ ctx.atualizarContadores = atualizarContadores;
 // Rotas
 // ---------------------------------------------------------------------------
 const TELAS = { inicio: 'inicio', pessoas: 'pessoas', pessoa: 'pessoa', experiencia: 'experiencia', painel_rh: 'painel', importar: 'importar', usuarios: 'usuarios',
-  solicitacoes: 'solicitacoes', vagas: 'vagas', vaga: 'vaga', curriculos: 'curriculos', agenda: 'agenda', migracao: 'migracao', admissao: 'admissao', rescisao: 'rescisao', movimentacoes: 'movimentacoes' };
+  solicitacoes: 'solicitacoes', vagas: 'vagas', vaga: 'vaga', curriculos: 'curriculos', agenda: 'agenda', migracao: 'migracao', admissao: 'admissao', rescisao: 'rescisao', movimentacoes: 'movimentacoes', salarios: 'salarios', equipe: 'equipe', guia: 'guia' };
 const MAE = { pessoa: 'pessoas', vaga: 'vagas' }; // telas de detalhe herdam a permissão e o menu da lista
 let rotaAtual = 0;
 async function rotear() {
@@ -209,7 +209,7 @@ async function rotear() {
   if (!permitido) { el.innerHTML = `<section class="card vazio"><span class="ic" style="background:var(--verm-bg);color:var(--verm)"><i class="ti ti-lock"></i></span><h2 class="d">Você não tem acesso a esta tela</h2><p>Peça ao administrador do RH para liberar o módulo no seu usuário.</p><a class="btn" href="#/inicio"><i class="ti ti-arrow-left"></i>Voltar ao início</a></section>`; return; }
   el.innerHTML = '<div class="card" style="padding:20px">' + [1, 2, 3, 4].map(() => '<div class="esq-l" style="height:18px;margin:12px 0"></div>').join('') + '</div>';
   try {
-    const mod = await import(`./modulos/${TELAS[rota]}.js?v=12`);
+    const mod = await import(`./modulos/${TELAS[rota]}.js?v=13`);
     if (n !== rotaAtual) return;
     await mod.render(el, ctx, param, param2);
     document.title = (info ? info.nome + ' — ' : '') + 'Gestão de Pessoas';

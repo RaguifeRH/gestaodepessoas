@@ -1,6 +1,6 @@
 // Rescisão: desligamento com checklist por setor (RH, SESMT, TI, almoxarifado), homologação e dossiê.
-import { RESC_SETORES, TIPOS_DESLIG, RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO } from '../config.js?v=12';
-import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=12';
+import { RESC_SETORES, TIPOS_DESLIG, RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO } from '../config.js?v=13';
+import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=13';
 
 let aba = 'andamento', meus = false;
 const nomeTipo = k => (TIPOS_DESLIG.find(t => t[0] === k) || [k, k || '—'])[1];
@@ -176,7 +176,7 @@ async function detalhe(el, ctx, id) {
 }
 
 async function configurar(ctx, R) {
-  const { editarChecklist } = await import('../checklist-editor.js?v=12');
+  const { editarChecklist } = await import('../checklist-editor.js?v=13');
   const ok = await editarChecklist({ titulo: 'Checklist da rescisão', nomeGrupo: 'Setor',
     itens: R.cfg.itens.map(i => ({ ...i, grupo: i.setor })), perfis: R.cfg.perfis, grupos: Object.entries(RESC_SETORES), campos: {},
     padrao: () => { const c = converter(RESC_ITENS_PADRAO, RESC_PERFIS_PADRAO); return { itens: c.itens.map(i => ({ ...i, grupo: i.setor })), perfis: c.perfis }; },

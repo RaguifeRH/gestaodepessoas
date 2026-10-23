@@ -1,7 +1,7 @@
 // Pessoas e dossiê — lista com busca e filtros.
-import { $, $$, esc, tit, kpis, norm, fmtData, fmtNum, pill, vazio, modal, toast, erroAmigavel, hojeISO } from '../ui.js?v=12';
-import { TIPOS_EVENTO } from '../config.js?v=12';
-import { NOME_GRUPO } from '../fo1029.js?v=12';
+import { $, $$, esc, tit, kpis, norm, fmtData, fmtNum, pill, vazio, modal, toast, erroAmigavel, hojeISO } from '../ui.js?v=13';
+import { TIPOS_EVENTO } from '../config.js?v=13';
+import { NOME_GRUPO } from '../fo1029.js?v=13';
 
 const COR = { ativo: 'ok', afastado: 'sol', desligando: 'amb', desligado: '' };
 let estado = { q: '', f: '', s: '', g: 'atuais', n: 60 };

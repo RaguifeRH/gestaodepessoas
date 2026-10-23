@@ -1,13 +1,14 @@
 // Dados dos sistemas antigos: importa os backups (.json) gerados em 22/10/2026.
 // Os sistemas antigos não são alterados: o backup é só lido.
-import { ETAPAS } from '../config.js?v=12';
-import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=12';
-import { carregar, normalizarMotivo } from '../selecao.js?v=12';
-import { hashCpf, mascararCpf } from '../fo1029.js?v=12';
+import { ETAPAS } from '../config.js?v=13';
+import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=13';
+import { carregar, normalizarMotivo } from '../selecao.js?v=13';
+import { hashCpf, mascararCpf } from '../fo1029.js?v=13';
 
 const SISTEMAS = [
   { id: 'novaRH', nome: 'Raguife (novaRH) · Vagas, seleção e admissão', etapa: 2, desc: 'Pedidos de vaga, N2, vagas, candidatos, banco de talentos, agenda do R&S, processos de admissão e lista de motoristas (cesta/ticket).' },
   { id: 'novaRH-hist', nome: 'Raguife (novaRH) · Dossiê, experiência, rescisão e movimentações', etapa: 2, desc: 'Linha do tempo do dossiê (DDS, DSP, pílulas, ginástica, advertências…), acompanhamento da experiência, desligamentos, movimentações, multiplicadores, auxílio educação e adiantamentos. Importe o FO1029 antes: é por ele que cada registro encontra a pessoa.' },
+  { id: 'novaRH-gestao', nome: 'Raguife (novaRH) · Tabela salarial, Guia RH e Equipe RH', etapa: 2, desc: 'Cargos e faixas, fases e etapas do guia, áreas, pessoas, funções e demandas da equipe. Use o backup gerado a partir de 23/10 (o de 22/10 não tem a tabela nem o guia).' },
   { id: 'beneficios', nome: 'Benefícios', etapa: 5, desc: 'Entra com o portal do funcionário.' },
   { id: 'indicadores', nome: 'Indicadores', etapa: 6, desc: 'Entra com os indicadores das áreas.' },
   { id: 'jornal', nome: 'Jornal', etapa: 5, desc: 'Entra com o portal do funcionário.' },
@@ -30,6 +31,7 @@ export async function render(el, ctx) {
     + card('Sistemas', SISTEMAS.map(s => { const u = ultima(s.id); return `<div class="anexo"><span class="ic"><i class="ti ti-database"></i></span><div><b>${esc(s.nome)}</b><small class="muted" style="display:block">${esc(s.desc)}${u ? ` · última importação ${fmtDataHora(u.criadoEm)} por ${esc(u.porNome || '')}` : ''}</small></div>${s.etapa === 2 ? `<label class="btn sm ${u ? '' : 'prim'}"><i class="ti ti-upload"></i>${u ? 'Importar de novo' : 'Escolher backup'}<input type="file" accept=".json,application/json" id="arq-${s.id}" hidden></label>` : `<span class="pill">Etapa ${s.etapa}</span>`}</div>`; }).join(''))
     + '<div id="prev" class="mt"></div>';
   $('#arq-novaRH').onchange = e => { const f = e.target.files[0]; if (f) previa(el, ctx, f); };
+  $('#arq-novaRH-gestao').onchange = e => { const f = e.target.files[0]; if (f) previaGestao(el, ctx, f); };
   $('#arq-novaRH-hist').onchange = e => { const f = e.target.files[0]; if (f) previaHist(el, ctx, f); };
 }
 
@@ -258,3 +260,28 @@ async function montarHist(C, resumo, exist, uid) {
   return { eventos, orfaos, exp, resc, movs, mult, aux, adiant, pilulas, achadas, porNome: nomeOk, nOrfaos: quemOrfao.size };
 }
 const normN = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
+// Tabela salarial, Guia RH e Equipe RH: copiados com os mesmos ids (não sobrescreve o que foi alterado aqui).
+async function previaGestao(el, ctx, arquivo) {
+  const box = $('#prev'); box.innerHTML = '<div class="card" style="padding:20px"><div class="esq-l" style="height:60px"></div></div>';
+  let bk; try { bk = JSON.parse(await arquivo.text()); } catch (e) { box.innerHTML = '<div class="erro-msg">Não consegui ler o arquivo.</div>'; return; }
+  if (!bk.colecoes || (bk.sistema !== 'novaRH' && bk.projeto !== 'novarh-4fbc6')) { box.innerHTML = '<div class="erro-msg">Escolha o backup do novaRH.</div>'; return; }
+  const cols = ['salario_cargos', 'guia_fases', 'guia_etapas', 'equipe_areas', 'equipe_colaboradores', 'equipe_funcoes', 'equipe_demandas'];
+  if (!Object.keys(bk.colecoes.salario_cargos || {}).length) { box.innerHTML = '<div class="erro-msg">Este backup não tem a tabela salarial nem o Guia RH. Gere um backup novo com a ferramenta atualizada (backup-sistemas-rh.html).</div>'; return; }
+  const agora = new Date().toISOString(); const ops = []; const st = { novos: 0, atualizados: 0, mantidos: 0 }; const n = {};
+  for (const col of cols) {
+    const ex = new Map((await ctx.D.listar(col).catch(() => [])).map(x => [x.id, x]));
+    const docs = Object.entries(bk.colecoes[col] || {}).map(([id, x]) => [id, x.dados || x]); n[col] = docs.length;
+    docs.forEach(([id, d]) => { const ja = ex.get(id); if (ja && ja.editadoEm) { st.mantidos++; return; } ja ? st.atualizados++ : st.novos++; const { id: _, ...resto } = d; ops.push({ caminho: [col, id], dados: { ...resto, legado: true, importadoEm: agora } }); });
+  }
+  box.innerHTML = card('Conferir antes de gravar', kpis([['Tabela salarial', fmtNum(n.salario_cargos), 'cargos com faixas'], ['Guia RH', fmtNum(n.guia_fases) + ' · ' + fmtNum(n.guia_etapas), 'fases · etapas'], ['Equipe', fmtNum(n.equipe_colaboradores), n.equipe_areas + ' áreas · ' + n.equipe_funcoes + ' funções'], ['Demandas', fmtNum(n.equipe_demandas), 'da equipe']])
+    + `<p class="small" style="margin:12px 0">${st.novos} novos · ${st.atualizados} já importados (atualizados) · ${st.mantidos} alterados aqui (mantidos). Backup de ${fmtDataHora(bk.geradoEm)}.</p><div class="progresso" id="mg-prog" hidden><i></i></div><div id="mg-msg"></div>
+       <div style="display:flex;gap:8px;margin-top:12px"><button class="btn prim" id="mg-ok"><i class="ti ti-database-import"></i>Gravar ${fmtNum(ops.length)} registros</button><button class="btn ghost" id="mg-x">Cancelar</button></div>`);
+  $('#mg-x').onclick = () => { box.innerHTML = ''; };
+  $('#mg-ok').onclick = async () => {
+    if (!(await confirmar('Importar', `Gravar ${fmtNum(ops.length)} registros? O sistema antigo não é alterado.`, 'Gravar'))) return;
+    $('#mg-ok').disabled = true; $('#mg-prog').hidden = false;
+    try { await ctx.D.gravarLote(ops, (f, t) => { $('#mg-prog i').style.width = Math.round(f / t * 100) + '%'; }); await ctx.D.criar('migracoes', { sistema: 'novaRH-gestao', arquivo: arquivo.name, geradoEm: bk.geradoEm || '', registros: ops.length, ...st, porNome: ctx.nome() }); toast('Importação concluída.'); render(el, ctx); }
+    catch (e) { $('#mg-msg').innerHTML = `<div class="erro-msg">A gravação parou: ${esc(erroAmigavel(e))}. Rode de novo.</div>`; $('#mg-ok').disabled = false; }
+  };
+}

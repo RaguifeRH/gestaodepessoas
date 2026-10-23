@@ -156,6 +156,15 @@ service cloud.firestore {
     match /pilulas/{id} { allow read: if ativo(); allow write: if admin(); }
     match /dossie_orfaos/{id} { allow read, write: if admin(); }
 
+    // Tabela salarial, Equipe RH e Guia RH (o guia todos leem; só o administrador edita).
+    match /salario_cargos/{id} { allow read, create, update: if mod('salarios'); allow delete: if admin(); }
+    match /equipe_areas/{id} { allow read, create, update: if mod('equipe'); allow delete: if admin(); }
+    match /equipe_colaboradores/{id} { allow read, create, update: if mod('equipe'); allow delete: if admin(); }
+    match /equipe_funcoes/{id} { allow read, create, update: if mod('equipe'); allow delete: if admin(); }
+    match /equipe_demandas/{id} { allow read, create, update: if mod('equipe'); allow delete: if admin(); }
+    match /guia_fases/{id} { allow read: if ativo(); allow write: if admin(); }
+    match /guia_etapas/{id} { allow read: if ativo(); allow write: if admin(); }
+
     // Agenda do R&S do sistema antigo (só leitura) e registro das migrações.
     match /agenda_antiga/{id} {
       allow read: if mod('selecao');

@@ -1,8 +1,8 @@
 // Admissão: checklist por perfil (quem fez e quando), cruzamento com o FO1029 pelo CPF,
 // documentos para imprimir, anexos e benefício do sindicato dos motoristas.
-import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=12';
-import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=12';
-import { carregar as carregarSelecao } from '../selecao.js?v=12';
+import { ADM_SECOES, ADM_PERFIS_PADRAO, ADM_ITENS_PADRAO, PERFIL_VAGA_ADM, SINDICATO_MOTORISTAS } from '../config.js?v=13';
+import { $, $$, esc, iniciais, tit, kpis, card, st, pill, fmtData, fmtDataHora, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=13';
+import { carregar as carregarSelecao } from '../selecao.js?v=13';
 
 let aba = 'andamento';
 
@@ -77,8 +77,8 @@ async function iniciar(ctx, A, base) {
 }
 
 async function manual(ctx, A) {
-  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=12');
-  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=12');
+  const { cpfValido, salvarCpf } = await import('../selecao-ui.js?v=13');
+  const { hashCpf, mascararCpf } = await import('../fo1029.js?v=13');
   let base = null;
   const r = await modal({ titulo: 'Admissão sem o R&S', corpo: `<p class="small muted" style="margin:0">Para quem não passou pelo kanban (transferência, recontratação direta, sócio…).</p>
       <div class="campo"><label for="m-nome">Nome completo</label><input class="inp" id="m-nome"></div>
@@ -210,7 +210,7 @@ async function detalhe(el, ctx, id) {
 
 // Itens e perfis do checklist (administrador): editor visual.
 async function configurar(ctx, A) {
-  const { editarChecklist } = await import('../checklist-editor.js?v=12');
+  const { editarChecklist } = await import('../checklist-editor.js?v=13');
   const auto = [['cpf', 'CPF'], ['rg', 'RG'], ['pis', 'PIS'], ['ctps', 'CTPS'], ['titulo', 'Título de eleitor'], ['nascimento', 'Nascimento'], ['endereco', 'Endereço'], ['celular', 'Celular'], ['reservista', 'Reservista'], ['chapa', 'Chapa']];
   const ok = await editarChecklist({ titulo: 'Checklist da admissão', nomeGrupo: 'Seção',
     extraTopo: `<div class="campo" style="margin-bottom:12px"><label for="cf-ini">Mostrar em "Para iniciar" os admitidos no FO1029 a partir de</label><input class="inp" type="date" id="cf-ini" value="${esc(A.cfg.inicio)}" style="max-width:220px"></div>`,

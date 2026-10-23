@@ -2,7 +2,7 @@
 // Editor visual de checklist (admissão e rescisão): itens por seção, "vale para"
 // por perfil, ordem, opcional e campo do FO1029. Sem códigos para digitar.
 // ============================================================================
-import { $, $$, esc, modal, toast, erroAmigavel, confirmar } from './ui.js?v=12';
+import { $, $$, esc, modal, toast, erroAmigavel, confirmar } from './ui.js?v=13';
 
 const novoId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
