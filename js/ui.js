@@ -40,10 +40,12 @@ export const hbar = (l, max) => l.map(x => `<div class="barra-h"><span>${esc(x[0
 // Gráfico de barras em SVG, com linha de meta opcional.
 export function barras(rot, series, opc = {}) {
   const W = 640, H = opc.alt || 220, pl = 34, pb = 26, n = rot.length, bw = (W - pl) / n, k = series.length, w = bw * .62 / k;
-  const max = opc.max || Math.max(1, ...series.flatMap(s => s.v), opc.meta || 0) * 1.15;
+  const bruto = opc.max || Math.max(1, ...series.flatMap(s => s.v), opc.meta || 0) * 1.1;
+  const passo = (() => { const p = Math.pow(10, Math.floor(Math.log10(bruto / 4))), r = bruto / 4 / p; return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p; })();
+  const max = passo * 4; // eixo com números redondos, para as linhas de grade baterem com os valores
   let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(opc.rotulo || 'Gráfico')}">`;
-  for (let i = 0; i <= 4; i++) { const v = max / 4 * i, y = H - pb - (v / max) * (H - pb - 10); s += `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#e3e9e3"/><text x="${pl - 6}" y="${y + 4}" font-size="10.5" fill="#86978b" text-anchor="end">${Math.round(v)}</text>`; }
-  rot.forEach((m, i) => { series.forEach((se, j) => { const h = (se.v[i] / max) * (H - pb - 10), x = pl + i * bw + bw * .19 + j * (w + 2); s += `<rect x="${x}" y="${H - pb - h}" width="${w}" height="${h}" rx="3" fill="${se.c}"><title>${esc(m)} · ${esc(se.n)}: ${se.v[i]}</title></rect>`; }); s += `<text x="${pl + i * bw + bw / 2}" y="${H - 8}" font-size="11" fill="#55635a" text-anchor="middle">${esc(m)}</text>`; });
+  for (let i = 0; i <= 4; i++) { const v = max / 4 * i, y = H - pb - (v / max) * (H - pb - 10); s += `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#e3e9e3"/><text x="${pl - 6}" y="${y + 4}" font-size="10.5" fill="#86978b" text-anchor="end">${String(+v.toFixed(2)).replace('.', ',')}</text>`; }
+  rot.forEach((m, i) => { series.forEach((se, j) => { const h = (se.v[i] / max) * (H - pb - 10), x = pl + i * bw + bw * .19 + j * (w + 2); s += `<rect x="${x}" y="${H - pb - h}" width="${w}" height="${h}" rx="3" fill="${se.c}"><title>${esc(m)} · ${esc(se.n)}: ${se.v[i]}</title></rect>`; if (opc.valores) s += `<text x="${x + w / 2}" y="${H - pb - h - 6}" font-size="12" font-weight="600" fill="#1d2b22" text-anchor="middle">${esc(opc.valores(se.v[i]))}</text>`; }); s += `<text x="${pl + i * bw + bw / 2}" y="${H - 8}" font-size="11" fill="#55635a" text-anchor="middle">${esc(m)}</text>`; });
   if (opc.meta) { const y = H - pb - (opc.meta / max) * (H - pb - 10); s += `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#b3372f" stroke-width="2" stroke-dasharray="6 5"/><text x="${W - 4}" y="${y - 6}" font-size="11" font-weight="600" fill="#b3372f" text-anchor="end">${esc(opc.metaTxt || 'Meta')}</text>`; }
   return s + '</svg>';
 }

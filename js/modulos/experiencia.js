@@ -1,7 +1,7 @@
 // Experiência: marcos de 10, 30, 45, 60 e 90 dias, calculados pela admissão.
-import { MARCOS } from '../config.js?v=3';
-import { $, $$, esc, tit, kpis, card, st, fmtData, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, vazio } from '../ui.js?v=3';
-import { emExperiencia, estadoMarco } from '../pendencias.js?v=3';
+import { MARCOS } from '../config.js?v=4';
+import { $, $$, esc, tit, kpis, card, st, fmtData, hojeISO, somarDias, diasEntre, modal, toast, erroAmigavel, vazio } from '../ui.js?v=4';
+import { emExperiencia, estadoMarco } from '../pendencias.js?v=4';
 
 let filtro = 'todos';
 

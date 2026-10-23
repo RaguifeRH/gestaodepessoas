@@ -1,5 +1,5 @@
 // Painel de RH: headcount, admissões, desligamentos e turnover (dados do FO1029).
-import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=3';
+import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=4';
 
 let filial = '';
 const NOMES_MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -43,6 +43,6 @@ export async function render(el, ctx) {
       ${card('Tempo de casa', hbar(casa, Math.max(...casa.map(c => c[1]))) + '<p class="small muted" style="margin:8px 0 0">Pessoas na folha hoje, pelo vínculo atual.</p>')}</div>
     <div class="g2i mt">${card('Por filial', hbar(porFilial, porFilial[0]?.[1]))}${card('Por tipo de contrato', hbar(porTipo, porTipo[0]?.[1]))}</div>
     <div class="mt">${card('Setores com mais pessoas', hbar(porSetor, porSetor[0]?.[1]))}</div>
-    <div class="mt">${card('Turnover por mês', barras(rot, [{ n: 'Turnover (%)', c: '#036c3b', v: turn.map(v => Math.round(v * 10) / 10) }], { rotulo: 'Turnover mensal' }) + '<p class="small muted" style="margin:6px 0 0">Turnover = média entre admissões e desligamentos, dividida pelo headcount do fim do mês.</p>')}</div>`;
+    <div class="mt">${card('Turnover por mês', barras(rot, [{ n: 'Turnover (%)', c: '#036c3b', v: turn.map(v => Math.round(v * 10) / 10) }], { rotulo: 'Turnover mensal', valores: v => v.toFixed(1).replace('.', ',') + '%' }) + '<p class="small muted" style="margin:6px 0 0">Turnover = média entre admissões e desligamentos, dividida pelo headcount do fim do mês.</p>')}</div>`;
   $('#fil').onchange = e => { filial = e.target.value; render(el, ctx); };
 }
