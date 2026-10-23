@@ -1,7 +1,7 @@
 // Pasta da pessoa: jornada, linha do tempo, documentos, vínculos e dados.
-import { TIPOS_EVENTO } from '../config.js?v=9';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=9';
-import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=9';
+import { TIPOS_EVENTO } from '../config.js?v=10';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=10';
+import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=10';
 
 export async function render(el, ctx, id) {
   const p = await ctx.D.pessoa(id);
@@ -35,8 +35,8 @@ export async function render(el, ctx, id) {
       <div class="acoes" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${pill(a.status || NOME_GRUPO[g], corG)}<button class="btn" id="imprimir"><i class="ti ti-printer"></i>Imprimir dossiê</button></div></div>
     <div class="trilha-p"><i class="feito" style="width:calc(${pctTrilho}% - ${pctTrilho ? 10 : 0}px)"></i>${etapas.map(e => `<div class="${e[1]}"><span>${e[1] === 'ok' ? '<i class="ti ti-check"></i>' : ''}</span>${e[0]}</div>`).join('')}</div>
     <div class="abas" role="tablist"><button class="on" data-p="tl" role="tab">Linha do tempo (${linha.length})</button><button data-p="docs" role="tab">Documentos (${anexos.length})</button><button data-p="vinc" role="tab">Vínculos (${(p.vinculos || []).length})</button><button data-p="dados" role="tab">Dados pessoais</button></div>
-    <div class="painel on" id="p-tl"><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><span class="muted small">Registros do dossiê e marcos vindos da folha.</span><button class="btn prim sm" id="novo-ev"><i class="ti ti-plus"></i>Novo registro</button></div>
-      ${linha.length ? `<ul class="tl">${linha.map(e => `<li><b>${esc(e.tipo)}${e.titulo ? ' · ' + esc(e.titulo) : ''}</b><small>${fmtData(e.data)} · ${e.auto ? 'da folha (FO1029)' : 'por ' + esc(e.porNome || '—') + ' em ' + fmtDataHora(e.criadoEm)}</small>${e.obs ? `<div class="small" style="margin-top:4px;white-space:pre-wrap">${esc(e.obs)}</div>` : ''}</li>`).join('')}</ul>` : '<p class="muted">Nenhum registro ainda.</p>'}</div>
+    <div class="painel on" id="p-tl"><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">${linha.length > 8 ? `<select class="inp" id="tl-f" style="width:auto;max-width:100%"><option value="">Todos os registros (${linha.length})</option>${[...new Set(linha.map(e => e.tipo))].sort().map(t => `<option>${esc(t)}</option>`).join('')}</select>` : '<span class="muted small">Registros do dossiê e marcos vindos da folha.</span>'}<button class="btn prim sm" id="novo-ev"><i class="ti ti-plus"></i>Novo registro</button></div>
+      ${linha.length ? `<ul class="tl">${linha.map(e => `<li data-tipo="${esc(e.tipo)}"><b>${esc(e.tipo)}${e.titulo ? ' · ' + esc(e.titulo) : ''}</b><small>${fmtData(e.data)} · ${e.auto ? 'da folha (FO1029)' : 'por ' + esc(e.porNome || '—') + ' em ' + fmtDataHora(e.criadoEm)}</small>${e.obs ? (e.obs.length > 220 ? `<details class="small" style="margin-top:4px"><summary>${esc(e.obs.slice(0, 140))}… <b>ver tudo</b></summary><div style="white-space:pre-wrap">${esc(e.obs)}</div></details>` : `<div class="small" style="margin-top:4px;white-space:pre-wrap">${esc(e.obs)}</div>`) : ''}</li>`).join('')}</ul>` : '<p class="muted">Nenhum registro ainda.</p>'}</div>
     <div class="painel" id="p-docs"><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap"><span class="muted small">PDF ou foto, até 15 MB. Ficam guardados no Brasil, só para quem tem acesso.</span><button class="btn prim sm" id="anexar"><i class="ti ti-paperclip"></i>Anexar documento</button></div>
       ${anexos.length ? anexos.map(x => `<div class="anexo"><span class="ic"><i class="ti ${(x.tipo || '').includes('pdf') ? 'ti-file-type-pdf' : 'ti-photo'}"></i></span><div><b style="font-weight:600">${esc(x.descricao || x.nome)}</b><div class="small muted">${esc(x.nome)} · ${(x.tamanho / 1024 / 1024).toFixed(1).replace('.', ',')} MB · por ${esc(x.porNome || '—')} em ${fmtDataHora(x.criadoEm)}</div></div><button class="btn sm" data-abrir="${esc(x.caminho)}"><i class="ti ti-external-link"></i>Abrir</button></div>`).join('') : '<p class="muted">Nenhum documento anexado.</p>'}</div>
     <div class="painel" id="p-vinc">${(p.vinculos || []).slice().reverse().map(v => `<div class="vinc"><span class="av">${esc((v.matricula || '').slice(-2))}</span><div><b>${esc(v.cargo)}</b><div class="small muted">${esc(v.filial)} · ${esc(v.setor)} · matrícula ${esc(v.matricula)} · ${esc(v.tipo)}</div><div class="small">${fmtData(v.admissao)} até ${v.demissao ? fmtData(v.demissao) : 'hoje'}${v.tipoDemissao ? ' · ' + esc(v.tipoDemissao) : ''}</div></div>${pill(v.status, { ativo: 'ok', afastado: 'sol', desligando: 'amb', desligado: '' }[v.grupo])}</div>`).join('')}</div>
@@ -92,6 +92,7 @@ export async function render(el, ctx, id) {
     if (vaga) meta.insertAdjacentHTML('beforeend', `<span><i class="ti ti-user-search"></i>Vaga ${esc(vaga)}${sol ? ' · pedido ' + esc(sol) : ''}</span>`);
     if (a1) meta.insertAdjacentHTML('beforeend', `<span><a href="#/admissao/${esc(a1.id)}" style="color:inherit"><i class="ti ti-file-check"></i>Admissão ${a1.status === 'concluido' ? 'concluída' : 'em andamento'}</a></span>`);
   })();
+  if ($('#tl-f')) $('#tl-f').onchange = e => $$('#p-tl .tl li').forEach(li => { li.hidden = !!e.target.value && li.dataset.tipo !== e.target.value; });
   $('#voltar').onclick = () => { location.hash = window.__gpAnterior || '#/pessoas'; };
   $('#imprimir').onclick = () => {
     const w = window.open('', '_blank'); if (!w) return toast('Permita pop-ups para imprimir.', 'erro');

@@ -136,6 +136,26 @@ service cloud.firestore {
       allow delete: if admin();
     }
 
+    // ---------------------------------------------------------------------
+    // Rescisão e movimentações
+    // ---------------------------------------------------------------------
+    match /rescisoes/{id} {
+      allow read, create, update: if mod('rescisao');
+      allow delete: if admin();
+      match /anexos/{an} {
+        allow read: if mod('rescisao');
+        allow create: if mod('rescisao') && souAutor();
+        allow update, delete: if admin();
+      }
+    }
+    match /movimentacoes/{id} { allow read, create, update: if mod('movimentacoes'); allow delete: if admin(); }
+    match /multiplicadores/{id} { allow read, create, update: if mod('movimentacoes'); allow delete: if admin(); }
+    match /auxilio_educacao/{id} { allow read, create, update: if mod('movimentacoes'); allow delete: if admin(); }
+    match /adiantamentos/{id} { allow read, create, update: if mod('movimentacoes'); allow delete: if admin(); }
+    // Pílulas (temas de DDS/DSP) e registros do dossiê antigo sem pessoa encontrada: guardados para não perder nada.
+    match /pilulas/{id} { allow read: if ativo(); allow write: if admin(); }
+    match /dossie_orfaos/{id} { allow read, write: if admin(); }
+
     // Agenda do R&S do sistema antigo (só leitura) e registro das migrações.
     match /agenda_antiga/{id} {
       allow read: if mod('selecao');

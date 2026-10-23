@@ -3,9 +3,9 @@
 // Entram com uma sessão anônima do Firebase; as regras só deixam criar o pedido
 // e responder ao pedido que está com o N2.
 // ============================================================================
-import { D } from './dados.js?v=9';
-import { MOTIVOS_VAGA, EMPRESAS_PADRAO, STATUS_SOL } from './config.js?v=9';
-import { $, esc, fmtDataHora, st, erroAmigavel } from './ui.js?v=9';
+import { D } from './dados.js?v=10';
+import { MOTIVOS_VAGA, EMPRESAS_PADRAO, STATUS_SOL } from './config.js?v=10';
+import { $, esc, fmtDataHora, st, erroAmigavel } from './ui.js?v=10';
 
 const pagina = document.body.dataset.pagina;
 const params = new URLSearchParams(location.search);

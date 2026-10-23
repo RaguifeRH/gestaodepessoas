@@ -1,13 +1,13 @@
 // Dados dos sistemas antigos: importa os backups (.json) gerados em 22/10/2026.
 // Os sistemas antigos não são alterados: o backup é só lido.
-import { ETAPAS } from '../config.js?v=9';
-import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=9';
-import { carregar, normalizarMotivo } from '../selecao.js?v=9';
-import { hashCpf, mascararCpf } from '../fo1029.js?v=9';
+import { ETAPAS } from '../config.js?v=10';
+import { $, esc, tit, card, kpis, fmtNum, fmtDataHora, capitalizar, toast, erroAmigavel, confirmar } from '../ui.js?v=10';
+import { carregar, normalizarMotivo } from '../selecao.js?v=10';
+import { hashCpf, mascararCpf } from '../fo1029.js?v=10';
 
 const SISTEMAS = [
   { id: 'novaRH', nome: 'Raguife (novaRH) · Vagas, seleção e admissão', etapa: 2, desc: 'Pedidos de vaga, N2, vagas, candidatos, banco de talentos, agenda do R&S, processos de admissão e lista de motoristas (cesta/ticket).' },
-  { id: 'novaRH-adm', nome: 'Raguife (novaRH) · Dossiê, rescisão e movimentações', etapa: 4, desc: 'Entra com a etapa 4.' },
+  { id: 'novaRH-hist', nome: 'Raguife (novaRH) · Dossiê, experiência, rescisão e movimentações', etapa: 2, desc: 'Linha do tempo do dossiê (DDS, DSP, pílulas, ginástica, advertências…), acompanhamento da experiência, desligamentos, movimentações, multiplicadores, auxílio educação e adiantamentos. Importe o FO1029 antes: é por ele que cada registro encontra a pessoa.' },
   { id: 'beneficios', nome: 'Benefícios', etapa: 5, desc: 'Entra com o portal do funcionário.' },
   { id: 'indicadores', nome: 'Indicadores', etapa: 6, desc: 'Entra com os indicadores das áreas.' },
   { id: 'jornal', nome: 'Jornal', etapa: 5, desc: 'Entra com o portal do funcionário.' },
@@ -30,6 +30,7 @@ export async function render(el, ctx) {
     + card('Sistemas', SISTEMAS.map(s => { const u = ultima(s.id); return `<div class="anexo"><span class="ic"><i class="ti ti-database"></i></span><div><b>${esc(s.nome)}</b><small class="muted" style="display:block">${esc(s.desc)}${u ? ` · última importação ${fmtDataHora(u.criadoEm)} por ${esc(u.porNome || '')}` : ''}</small></div>${s.etapa === 2 ? `<label class="btn sm ${u ? '' : 'prim'}"><i class="ti ti-upload"></i>${u ? 'Importar de novo' : 'Escolher backup'}<input type="file" accept=".json,application/json" id="arq-${s.id}" hidden></label>` : `<span class="pill">Etapa ${s.etapa}</span>`}</div>`; }).join(''))
     + '<div id="prev" class="mt"></div>';
   $('#arq-novaRH').onchange = e => { const f = e.target.files[0]; if (f) previa(el, ctx, f); };
+  $('#arq-novaRH-hist').onchange = e => { const f = e.target.files[0]; if (f) previaHist(el, ctx, f); };
 }
 
 async function previa(el, ctx, arquivo) {
@@ -153,3 +154,107 @@ async function montarAdm(C) {
   const motoristas = docs('gp_motoristas').map(([id, x]) => ['L' + String(id).replace(/[^\w-]/g, '_'), { nome: cap(x.nome), cargo: cap(x.cargo), setor: cap(x.depto), admissao: iso(x.admissao), opcao: x.opcao === 'TICKET' ? 'Ticket' : x.opcao ? 'Cesta básica' : '', opcaoProx: x.opcaoProx ? (x.opcaoProx === 'TICKET' ? 'Ticket' : 'Cesta básica') : '', compProx: x.compProx || '', sindicato: x.sindicato || '', status: x.status || '', origem: 'Sistema antigo', legado: true, importadoEm: agora }]);
   return { admissoes, motoristas, admImportados: todos.length - admissoes.length };
 }
+
+// ---------------------------------------------------------------------------
+// Histórico do novaRH: dossiê, experiência, rescisão e movimentações.
+// Cada registro encontra a pessoa pelo CPF (processos de admissão) ou pelo nome (FO1029).
+// Quem não for encontrado vai para dossie_orfaos: nada se perde.
+// ---------------------------------------------------------------------------
+async function previaHist(el, ctx, arquivo) {
+  const box = $('#prev'); box.innerHTML = '<div class="card" style="padding:20px"><div class="esq-l" style="height:60px"></div><p class="small muted">Lendo o backup e procurando cada pessoa no FO1029…</p></div>';
+  let bk;
+  try { bk = JSON.parse(await arquivo.text()); } catch (e) { box.innerHTML = '<div class="erro-msg">Não consegui ler o arquivo.</div>'; return; }
+  if (!bk.colecoes || (bk.sistema !== 'novaRH' && bk.projeto !== 'novarh-4fbc6')) { box.innerHTML = '<div class="erro-msg">Escolha o backup do novaRH (backup_novarh-4fbc6_….json).</div>'; return; }
+  const resumo = await ctx.resumo(true).catch(() => ({ itens: [] }));
+  if (!resumo.itens.length) { box.innerHTML = '<div class="erro-msg">Importe o FO1029 primeiro: é por ele que cada registro encontra a pessoa.</div>'; return; }
+  const exist = await ctx.D.experiencias().catch(() => ({}));
+  const m = await montarHist(bk.colecoes, resumo, exist, ctx.uid);
+  const ops = [...m.eventos, ...m.orfaos, ...m.exp, ...m.resc, ...m.movs, ...m.mult, ...m.aux, ...m.adiant, ...m.pilulas];
+  box.innerHTML = card('Conferir antes de gravar', kpis([['Dossiê', fmtNum(m.eventos.length), 'registros na linha do tempo'], ['Sem pessoa', fmtNum(m.orfaos.length), 'guardados à parte (não se perdem)', m.orfaos.length ? 'neutro' : 'sobe'], ['Experiência', fmtNum(m.exp.length), 'pessoas com marcos registrados'], ['Rescisões', fmtNum(m.resc.length), 'desligamentos com checklist']])
+    + `<p class="small" style="margin:12px 0 4px">Movimentações: ${m.movs.length} · multiplicadores: ${m.mult.length} · auxílio educação: ${m.aux.length} · adiantamentos: ${m.adiant.length} · pílulas: ${m.pilulas.length}.</p>
+       <p class="small" style="margin:0 0 4px">Pessoas encontradas: ${fmtNum(m.achadas)} pelo CPF e ${fmtNum(m.porNome)} pelo nome. ${m.orfaos.length ? `${fmtNum(m.orfaos.length)} registros de ${m.nOrfaos} pessoa(s) que não estão no FO1029 importado (outras filiais ou nome diferente) ficam guardados e aparecem quando o FO1029 trouxer essas pessoas e você importar de novo.` : ''}</p>
+       <p class="small" style="margin:0 0 12px">Na experiência, marcos já registrados aqui não são trocados.</p>
+       <div class="progresso" id="mg-prog" hidden><i></i></div><div id="mg-msg"></div>
+       <div style="display:flex;gap:8px;margin-top:12px"><button class="btn prim" id="mg-ok"><i class="ti ti-database-import"></i>Gravar ${fmtNum(ops.length)} registros</button><button class="btn ghost" id="mg-x">Cancelar</button></div>`);
+  $('#mg-x').onclick = () => { box.innerHTML = ''; };
+  $('#mg-ok').onclick = async () => {
+    if (!(await confirmar('Importar histórico', `Gravar ${fmtNum(ops.length)} registros do sistema antigo? Pode levar alguns minutos. O sistema antigo não é alterado.`, 'Gravar'))) return;
+    $('#mg-ok').disabled = true; $('#mg-prog').hidden = false;
+    try {
+      await ctx.D.gravarLote(ops, (f, t) => { $('#mg-prog i').style.width = Math.round(f / t * 100) + '%'; });
+      await ctx.D.criar('migracoes', { sistema: 'novaRH-hist', arquivo: arquivo.name, geradoEm: bk.geradoEm || '', registros: ops.length, orfaos: m.orfaos.length, porNome: ctx.nome() });
+      ctx.D.log('migracao_novarh_hist', ops.length + ' registros'); ctx._exp = null; ctx._resc = null;
+      toast('Histórico importado.'); render(el, ctx);
+    } catch (e) { $('#mg-msg').innerHTML = `<div class="erro-msg">A gravação parou: ${esc(erroAmigavel(e))}. Nada se perde: rode de novo, ela continua de onde parou.</div>`; $('#mg-ok').disabled = false; }
+  };
+}
+
+async function montarHist(C, resumo, exist, uid) {
+  const docs = col => Object.entries(C[col] || {}).map(([id, x]) => [id, x.dados || x]);
+  const agora = new Date().toISOString();
+  const naFolha = new Map(resumo.itens.map(x => [x.i, x]));
+  const porNome = new Map(); resumo.itens.forEach(x => { const k = normN(x.n); if (!porNome.has(k) || x.g !== 'desligado') porNome.set(k, x.i); });
+  const iso = d => { const t = String(d || ''); const mm = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(t); return mm ? `${mm[3]}-${mm[2]}-${mm[1]}` : /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0, 10) : ''; };
+  // funcId → pessoa
+  const func = new Map(); let achadas = 0, nomeOk = 0;
+  for (const [id, p] of docs('adm_processos')) {
+    const dd = p.dados || {}; const cpf = String(dd.cpf || '').replace(/\D/g, ''); let pid = cpf.length >= 9 ? await hashCpf(cpf) : '';
+    if (pid && naFolha.has(pid)) achadas++; else { pid = porNome.get(normN(dd.nome)) || ''; if (pid) nomeOk++; }
+    func.set('adm_' + id, { pid, nome: cap(dd.nome) });
+  }
+  docs('dossie_funcs').forEach(([id, f]) => { const pid = porNome.get(normN(f.nome)) || ''; if (pid) nomeOk++; func.set(id, { pid, nome: cap(f.nome) }); });
+  const achar = (funcId, nome) => { const f = func.get(funcId); if (f && f.pid) return f; const pid = porNome.get(normN(nome || (f && f.nome))); return { pid: pid || '', nome: cap(nome || (f && f.nome) || '') }; };
+  const tipos = Object.fromEntries(docs('dossie_tipos').map(([, t]) => [t.id, t.nome]));
+  Object.assign(tipos, { brigadista_ini: 'Brigadista — entrada', cipa_ini: 'CIPA — entrada', multiplicador_ini: 'Multiplicador — entrada' });
+  const eventos = [], orfaos = [], quemOrfao = new Set();
+  for (const [id, e] of docs('dossie_eventos')) {
+    const f = achar(e.funcId);
+    const ev = { tipo: tipos[e.tipoId] || cap(String(e.tipoId || 'Outro').replace(/_/g, ' ')), data: iso(e.data) || String(e.criadoEm || '').slice(0, 10), titulo: e.titulo || '', obs: e.obs || '', porNome: cap(e.resp) || '', porUid: uid, criadoEm: e.criadoEm || agora, legado: true,
+      ...(e.grupo ? { grupo: true } : {}), ...(e.especial ? { especial: true } : {}), ...(e.discRecebido ? { devolucao: { recebido: e.discRecebido, em: e.discRecebidoData || e.discDataRec || '', por: e.discRecebidoResp || e.discRespRec || '' } } : {}) };
+    if (f.pid && naFolha.has(f.pid)) eventos.push({ caminho: ['pessoas', f.pid, 'eventos', id], dados: ev });
+    else { orfaos.push({ caminho: ['dossie_orfaos', id], dados: { ...ev, funcId: e.funcId, nome: f.nome } }); quemOrfao.add(e.funcId); }
+  }
+  // Experiência
+  const cfgExp = (docs('exp_cfg')[0] || [null, {}])[1] || {};
+  const contatos = Object.fromEntries((cfgExp.contatos || []).map(c => ['contato_' + c.id, c.dia]));
+  const videos = Object.fromEntries((cfgExp.videos || []).map(v => ['video_' + v.id, v.titulo]));
+  const marco = { 10: 'd10', 30: 'd30', 60: 'd60' };
+  const exp = [];
+  for (const [id, x] of docs('exp_data')) {
+    const f = func.get(id); if (!f || !f.pid || !naFolha.has(f.pid)) continue;
+    const ja = exist[f.pid] || {}; const r = {}; const vids = {};
+    const reg = (k, v, extra = {}) => { if (!ja[k] || !ja[k].em) r[k] = { em: iso(v.date || v.data) || String(v.registradoEm || '').slice(0, 10), obs: v.obs || '', porNome: cap(v.resp) || '', legado: true, ...extra }; };
+    Object.entries(x.checks || {}).forEach(([k, v]) => {
+      if (!v || !v.done) return;
+      if (contatos[k] && marco[contatos[k]]) reg(marco[contatos[k]], v);
+      else if (k === 'feedback45') reg('d45', v, { avaliacaoGestor: true });
+      else if (k === 'efetivacao') reg('d90', v, { decisao: 'efetivar' });
+      else if (videos[k]) vids[k.slice(6)] = { titulo: videos[k], em: iso(v.date) || '', porNome: cap(v.resp) || '', obs: v.obs || '' };
+    });
+    const ef = x.efetivacao; if (ef && ef.efetivado && (!ja.d90 || !ja.d90.em) && !r.d90) r.d90 = { em: iso(ef.dtAlteracao) || iso(ef.registradoEm) || '', decisao: /^S/i.test(ef.efetivado) ? 'efetivar' : 'nao_efetivar', obs: [ef.obs, ef.cargo && ef.cargo !== 'O MESMO' ? 'Cargo: ' + ef.cargo : '', ef.salario ? 'Salário: ' + ef.salario : ''].filter(Boolean).join(' · '), porNome: cap(ef.responsavel) || '', legado: true };
+    if (Object.keys(vids).length) r.videos = vids;
+    if (Object.keys(r).length) exp.push({ caminho: ['experiencia', f.pid], dados: r, merge: true });
+  }
+  // Rescisões
+  const resc = docs('rescisao_processos').map(([id, p]) => {
+    const f = achar(p.funcId ? (String(p.funcId).startsWith('adm_') || String(p.funcId).startsWith('hist_') ? p.funcId : 'adm_' + p.funcId) : '', p.nome); const x = naFolha.get(f.pid) || {};
+    const checks = {}; Object.entries(p.checks || {}).forEach(([k, v]) => { if (v === 'na') checks[k] = 'na'; else if (v && v.done) checks[k] = { em: v.data || '', porNome: cap(v.resp), obs: v.obs || '', legado: true }; });
+    const h = p.homologacao || {};
+    return { caminho: ['rescisoes', id], dados: { pid: f.pid || '', nome: cap(p.nome), cpfMasc: x.cm || '', matricula: x.m || '', cargo: cap(p.cargo), setor: cap(p.setor), empresa: p.empresa || '', filial: x.f || '', admissao: x.a || '', deslig: iso(p.deslig), tipo: p.tipo || 'outro', perfil: p.perfil || '',
+      expTipo: p.expTipo || '', expIniciativa: p.expIniciativa || '', obs: p.obs || '', checks, homologacao: { data: h.data || '', hora: h.hora || '', local: h.local || '', obs: h.obs || '' },
+      status: p.finalizado ? 'finalizado' : 'andamento', ...(p.finalizado ? { finalizadoEm: p.finalizadoEm || p.atualizadoEm || '' } : {}), porNome: cap(p.criadoPor), criadoEm: p.criadoEm || agora, legado: true, importadoEm: agora } };
+  });
+  const pessoaPorNome = nome => { const pid = porNome.get(normN(nome)) || ''; const x = naFolha.get(pid) || {}; return { pid, nome: cap(nome), cargo: x.c || '', setor: x.s || '', matricula: x.m || '', filial: x.f || '' }; };
+  const mov = ({ 'PROMOÇÃO': 'Promoção', 'MOV. LATERAL': 'Movimentação lateral', 'EFETIVAÇÃO': 'Efetivação', 'RECRUTAMENTO INTERNO': 'Recrutamento interno', 'READAPTAÇÃO': 'Readaptação', 'AJUSTE EXCEPCIONAL': 'Ajuste excepcional' });
+  const sn = v => /^S/i.test(v || '') ? 'Sim' : 'Não';
+  const movs = docs('gp_movs').map(([id, x]) => ({ caminho: ['movimentacoes', 'L' + id], dados: { ...pessoaPorNome(x.nome), cargo: cap(x.cargoNovo || x.cargoAnt), motivo: mov[x.motivo] || cap(x.motivo), competencia: x.competencia || '', cargoAnt: cap(x.cargoAnt), cargoNovo: cap(x.cargoNovo), deptoAnt: cap(x.deptoAnt), deptoNovo: cap(x.deptoNovo), salarioAnt: +x.salarioAnt || null, salarioNovo: +x.salarioNovo || null,
+    escalaAnt: x.escalaAnt || '', escalaNovo: x.escalaNovo || '', liderAnt: cap(x.liderAnt), liderNovo: cap(x.liderNovo), mudancaRisco: sn(x.mudancaRisco), insalPeric: sn(x.insalPeric), mudancaSindicato: sn(x.mudancaSindicato), dtExame: iso(x.dtExame), dtAso: iso(x.dtAso), responsavel: cap(x.responsavel), obs: x.obs || '',
+    dpStatus: x.dp && /AJUST/i.test(x.dp.status || '') ? 'Ajustado' : 'Pendente', dpComp: (x.dp && x.dp.compFolha) || '', ...(x.dp && x.dp.responsavel ? { dpPor: cap(x.dp.responsavel), dpEm: x.dp.data || '' } : {}), criadoEm: x.criadoEm || agora, legado: true } }));
+  const mult = docs('gp_mult').map(([id, x]) => ({ caminho: ['multiplicadores', 'L' + id], dados: { ...pessoaPorNome(x.nome), cargo: cap(x.cargo), setor: cap(x.depto), nivel: x.nivel || '', valor: +x.valor || null, dtInclusao: x.dtInclusao || '', pontuacao: String(x.pontuacao || ''), alterouNivelEm: x.alterouNivelEm || '', responsavel: cap(x.responsavel), ativo: x.ativo || 'SIM', obs: x.obs || '', dtAdmissao: x.dtAdmissao || '', legado: true } }));
+  const aux = docs('gp_auxedu').map(([id, x]) => ({ caminho: ['auxilio_educacao', 'L' + id], dados: { ...pessoaPorNome(x.nome), cargo: cap(x.cargo), setor: cap(x.depto), email: x.email || '', instituicao: x.instituicao || '', curso: cap(x.curso), modalidade: cap(x.modalidade), dtInicio: iso(x.dtInicio), dtTermino: iso(x.dtTermino), mensalidade: +x.mensalidade || null, percentual: +x.percentual || null, parcelas: +x.parcelas || null,
+    custoEmpresa: +x.custoEmpresa || null, custoAnual: +x.custoAnual || null, formaAuxilio: cap(x.formaAuxilio), compInicial: x.compInicial || '', aprovadoPor: cap(x.aprovadoPor), termo: x.termo || '', avaliacao: x.avaliacao || '', obs: x.obs || '', legado: true } }));
+  const adiant = [...docs('dossie_adiant_dev'), ...docs('gp_adiantamentos')].map(([id, x]) => { const f = achar(x.funcId, x.nome); const p = naFolha.get(f.pid) || {}; return { caminho: ['adiantamentos', 'L' + id], dados: { pid: f.pid, nome: f.nome || p.n || '', cargo: p.c || '', setor: p.s || '', matricula: p.m || '', data: iso(x.data), valor: +x.valor || null, devolvido: 'Não', resp: cap(x.resp), obs: x.obs || '', legado: true } }; });
+  const pilulas = docs('dossie_pilulas').map(([id, x]) => ({ caminho: ['pilulas', id], dados: { tema: x.tema || '', categoria: x.categoria || '', data: iso(x.data), obs: x.obs || '', criadoEm: x.criadoEm || '', legado: true } }));
+  return { eventos, orfaos, exp, resc, movs, mult, aux, adiant, pilulas, achadas, porNome: nomeOk, nOrfaos: quemOrfao.size };
+}
+const normN = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();

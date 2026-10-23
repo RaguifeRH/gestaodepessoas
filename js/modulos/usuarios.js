@@ -1,6 +1,6 @@
 // Usuários e acessos (só administrador).
-import { MODULOS } from '../config.js?v=9';
-import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=9';
+import { MODULOS, RESC_SETORES } from '../config.js?v=10';
+import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=10';
 
 export async function render(el, ctx) {
   const lista = await ctx.D.listarUsuarios();
@@ -19,6 +19,7 @@ export async function render(el, ctx) {
       <div class="campo"><label for="u-email">E-mail</label><input class="inp" id="u-email" type="email" value="${esc(u.email)}" ${novo ? '' : 'readonly'}></div></div>
       ${novo ? '<div class="campo"><label for="u-senha">Senha inicial</label><input class="inp" id="u-senha" type="text" minlength="8" placeholder="Mínimo de 8 caracteres"><span class="ajuda">Passe para a pessoa; ela pode trocar depois em "Esqueci minha senha".</span></div>' : ''}
       <div class="campo"><label for="u-perfil">Perfil</label><select class="inp" id="u-perfil" ${eu ? 'disabled' : ''}><option value="usuario"${u.perfil !== 'admin' ? ' selected' : ''}>Usuário (só os módulos marcados)</option><option value="admin"${u.perfil === 'admin' ? ' selected' : ''}>Administrador (tudo, inclusive usuários)</option></select></div>
+      <div class="campo"><label for="u-setor">Setor na rescisão</label><select class="inp" id="u-setor"><option value="">Nenhum</option>${Object.entries(RESC_SETORES).map(([k, n]) => `<option value="${k}"${u.setorRescisao === k ? ' selected' : ''}>${n}</option>`).join('')}</select><span class="ajuda">Destaca para a pessoa os itens do desligamento que são do setor dela.</span></div>
       <div class="campo" id="u-mods-c"><label>Módulos liberados</label><div class="chk-grade">${MODULOS.filter(m => !m.perm).map(m => `<label title="${esc(m.desc)}"><input type="checkbox" value="${m.id}"${(u.modulos || []).includes(m.id) ? ' checked' : ''}> ${esc(m.nome)}</label>`).join('')}</div><span class="ajuda">"Dados sensíveis" libera CPF completo, salário, documentos pessoais, filiação e contato.</span></div>
       ${novo || eu ? '' : `<label class="chk-grade" style="grid-template-columns:1fr"><label><input type="checkbox" id="u-ativo"${u.ativo !== false ? ' checked' : ''}> Acesso ativo</label></label>`}
       <div id="u-msg"></div>`;
@@ -36,10 +37,10 @@ export async function render(el, ctx) {
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg('E-mail inválido.');
           if (senha.length < 8) return msg('A senha inicial precisa ter pelo menos 8 caracteres.');
           if (perfil !== 'admin' && !modulos.length) return msg('Marque pelo menos um módulo.');
-          try { await ctx.D.criarUsuario({ nome, email, senha, perfil, modulos }); ctx.D.log('usuario_criado', email); toast('Usuário criado.'); }
+          try { await ctx.D.criarUsuario({ nome, email, senha, perfil, modulos, setorRescisao: $('#u-setor', bg).value }); ctx.D.log('usuario_criado', email); toast('Usuário criado.'); }
           catch (e) { return msg(erroAmigavel(e)); }
         } else {
-          const dados = { nome, perfil, modulos };
+          const dados = { nome, perfil, modulos, setorRescisao: $('#u-setor', bg).value };
           const at = $('#u-ativo', bg); if (at) dados.ativo = at.checked;
           try { await ctx.D.salvarUsuario(u.id, dados); ctx.D.log('usuario_alterado', u.email); toast('Acessos salvos.'); }
           catch (e) { return msg(erroAmigavel(e)); }

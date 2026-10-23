@@ -2,8 +2,8 @@
 // Camada de dados — todo acesso ao banco passa por aqui.
 // Dois modos: Firebase (real) e demonstração (fictício, só neste navegador).
 // ============================================================================
-import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=9';
-import { itemResumo, montar } from './fo1029.js?v=9';
+import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=10';
+import { itemResumo, montar } from './fo1029.js?v=10';
 
 const agora = () => new Date().toISOString();
 const LOTE = 400; // operações por lote de gravação (limite do Firestore é 500)
@@ -67,12 +67,12 @@ async function criarFirebase() {
     // ---- usuários ----
     meuPerfil: () => usuarioAuth ? lerDoc('usuarios', usuarioAuth.uid) : null,
     listarUsuarios: () => lerCol(F.query(c('usuarios'), F.orderBy('nome'))),
-    async criarUsuario({ nome, email, senha, perfil, modulos }) {
+    async criarUsuario({ nome, email, senha, perfil, modulos, setorRescisao = '' }) {
       // Segunda instância do app: cria a conta sem derrubar a sessão do administrador.
       const sec = A.initializeApp(firebaseConfig, 'sec-' + Date.now());
       try {
         const cred = await AU.createUserWithEmailAndPassword(AU.getAuth(sec), email, senha);
-        await F.setDoc(d('usuarios', cred.user.uid), { nome, email: email.toLowerCase(), perfil, modulos, ativo: true, criadoEm: agora(), criadoPor: usuarioAuth.uid });
+        await F.setDoc(d('usuarios', cred.user.uid), { nome, email: email.toLowerCase(), perfil, modulos, setorRescisao, ativo: true, criadoEm: agora(), criadoPor: usuarioAuth.uid });
         await AU.signOut(AU.getAuth(sec));
         return cred.user.uid;
       } finally { try { await A.deleteApp(sec); } catch (e) {} }
@@ -183,7 +183,7 @@ async function criarDemo() {
     async salvarConfig(id, dados) { B.config = B.config || {}; B.config[id] = { ...(B.config[id] || {}), ...dados }; salvar(); },
     async meuPerfil() { return logado ? B.usuarios[logado.uid] : null; },
     async listarUsuarios() { return Object.entries(B.usuarios).map(([id, u]) => ({ id, ...u })).sort((a, b) => a.nome.localeCompare(b.nome)); },
-    async criarUsuario(u) { const id = 'demo-' + Date.now(); B.usuarios[id] = { nome: u.nome, email: u.email, perfil: u.perfil, modulos: u.modulos, ativo: true, criadoEm: agora() }; salvar(); return id; },
+    async criarUsuario(u) { const id = 'demo-' + Date.now(); B.usuarios[id] = { nome: u.nome, email: u.email, perfil: u.perfil, modulos: u.modulos, setorRescisao: u.setorRescisao || '', ativo: true, criadoEm: agora() }; salvar(); return id; },
     async salvarUsuario(uid, dados) { Object.assign(B.usuarios[uid], dados, { alteradoEm: agora() }); salvar(); },
     async resumo() { return B.resumo; },
     async pessoa(id) { return B.pessoas[id] ? { id, ...B.pessoas[id] } : null; },
@@ -225,7 +225,9 @@ async function criarDemo() {
       soMemoria = true; let n = 0;
       for (const o of ops) {
         const [col, id, sub, doc] = o.caminho;
-        if (sub) { const k = col + '/' + id + '/' + sub; (B.subs[k] = B.subs[k] || {})[doc] = clone(o.dados); }
+        if (col === 'pessoas' && sub === 'eventos') { const l = (B.eventos[id] = B.eventos[id] || []); const i = l.findIndex(e => e.id === doc); const ev = { id: doc, ...clone(o.dados) }; if (i >= 0) l[i] = ev; else l.push(ev); }
+        else if (col === 'experiencia' && !sub) B.experiencia[id] = { ...(B.experiencia[id] || {}), ...clone(o.dados) };
+        else if (sub) { const k = col + '/' + id + '/' + sub; (B.subs[k] = B.subs[k] || {})[doc] = clone(o.dados); }
         else if (col === 'config') B.config[id] = { ...(o.merge ? B.config[id] || {} : {}), ...clone(o.dados) };
         else { const m = (B.cols[col] = B.cols[col] || {}); m[id] = { ...(o.merge ? m[id] || {} : {}), ...clone(o.dados) }; }
         if (++n % 300 === 0) { aoProgredir && aoProgredir(n, ops.length); await espera(5); }

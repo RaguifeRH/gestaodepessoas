@@ -1,4 +1,4 @@
-# Gestão de Pessoas — Raguife · Etapas 1 a 3
+# Gestão de Pessoas — Raguife · Etapas 1 a 4
 
 Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **raguife-pessoas**.
 
@@ -31,6 +31,12 @@ Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **ragu
 - **Concluir**: registra "Admissão" na linha do tempo da pessoa e marca o candidato como admitido.
 - A pasta da pessoa mostra a vaga e o pedido de origem e o link da admissão.
 - Libere o módulo **Admissão** para a equipe.
+
+## Etapa 4 — Rescisão, movimentações e histórico
+- **Rescisão**: desligamento com checklist por setor (RH/DP, SESMT, TI, almoxarifado), perfis do novaRH, homologação, anexos e registro "Desligamento" no dossiê. Cada usuário tem um "setor na rescisão" (Usuários e acessos) e vê destacados os itens do seu setor. Sugere quem está "em desligamento" no FO1029.
+- **Movimentações**: promoções e mudanças (com situação no DP e registro no dossiê), motoristas (cesta/ticket e trocas), multiplicadores, auxílio educação e adiantamentos.
+- **Histórico do novaRH** (Dados dos sistemas antigos): linha do tempo do dossiê, experiência, rescisões e movimentações. Importe o FO1029 antes.
+- Libere os módulos **Rescisão** e **Movimentações**.
 
 ## Como publicar (uma vez)
 
