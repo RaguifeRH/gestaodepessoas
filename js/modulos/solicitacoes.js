@@ -1,8 +1,8 @@
 // Pedidos de vaga: o gestor pede pelo link, o RH encaminha ao N2, o N2 aprova pelo link e o RH abre a vaga.
-import { STATUS_SOL } from '../config.js?v=5';
-import { $, $$, esc, tit, kpis, card, st, fmtData, fmtDataHora, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=5';
-import { carregar, linkPedido, linkN2, linkAcompanhar } from '../selecao.js?v=5';
-import { modalVaga, listas } from '../selecao-ui.js?v=5';
+import { STATUS_SOL } from '../config.js?v=6';
+import { $, $$, esc, tit, kpis, card, st, fmtData, fmtDataHora, modal, toast, erroAmigavel, confirmar, vazio, norm } from '../ui.js?v=6';
+import { carregar, linkPedido, linkN2, linkAcompanhar } from '../selecao.js?v=6';
+import { modalVaga, listas } from '../selecao-ui.js?v=6';
 
 let aba = 'abertos', busca = '';
 const ABAS = [['abertos', 'Em andamento', s => ['pendente', 'com_n2', 'aprovado_n2'].includes(s.status)], ['aprovado', 'Vaga aberta', s => s.status === 'aprovado'], ['reprovados', 'Reprovados', s => ['reprovado', 'reprovado_n2'].includes(s.status)], ['todos', 'Todos', () => true]];

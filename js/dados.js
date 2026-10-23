@@ -2,8 +2,8 @@
 // Camada de dados — todo acesso ao banco passa por aqui.
 // Dois modos: Firebase (real) e demonstração (fictício, só neste navegador).
 // ============================================================================
-import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=5';
-import { itemResumo, montar } from './fo1029.js?v=5';
+import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=6';
+import { itemResumo, montar } from './fo1029.js?v=6';
 
 const agora = () => new Date().toISOString();
 const LOTE = 400; // operações por lote de gravação (limite do Firestore é 500)
@@ -42,7 +42,8 @@ async function criarFirebase() {
     demo: false,
     // ---- login ----
     aoMudarLogin: cb => AU.onAuthStateChanged(auth, u => { usuarioAuth = u; cb(u ? { uid: u.uid, email: u.email, anonimo: u.isAnonymous } : null); }),
-    entrarAnonimo: () => usuarioAuth ? Promise.resolve() : AU.signInAnonymously(auth),
+    // Páginas públicas: aproveita a sessão que já existir neste navegador (RH logado); senão, entra como anônimo.
+    async entrarAnonimo() { await auth.authStateReady(); usuarioAuth = auth.currentUser; if (!usuarioAuth) usuarioAuth = (await AU.signInAnonymously(auth)).user; },
     entrar: (email, senha) => AU.signInWithEmailAndPassword(auth, email, senha),
     criarMinhaConta: (email, senha) => AU.createUserWithEmailAndPassword(auth, email, senha),
     sair: () => AU.signOut(auth),

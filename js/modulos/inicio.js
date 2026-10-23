@@ -1,7 +1,7 @@
 // Início: saudação, trilha com números reais, pendências do dia e atalhos.
-import { esc, fmtNum, fmtData, st, card, iniciais } from '../ui.js?v=5';
-import { emExperiencia, pendenciasExperiencia, aniversariantes } from '../pendencias.js?v=5';
-import { carregar as carregarSelecao, pendenciasSelecao } from '../selecao.js?v=5';
+import { esc, fmtNum, fmtData, st, card, iniciais } from '../ui.js?v=6';
+import { emExperiencia, pendenciasExperiencia, aniversariantes } from '../pendencias.js?v=6';
+import { carregar as carregarSelecao, pendenciasSelecao } from '../selecao.js?v=6';
 
 export async function render(el, ctx) {
   const h = new Date().getHours(), oi = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';

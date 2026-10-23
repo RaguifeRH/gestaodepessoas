@@ -1,8 +1,8 @@
 // Uma vaga: cabeçalho com prazo e o kanban dos candidatos.
-import { ETAPAS, STATUS_VAGA } from '../config.js?v=5';
-import { $, $$, esc, iniciais, fmtData, st, pill, vazio, modal, toast, erroAmigavel, confirmar, hojeISO } from '../ui.js?v=5';
-import { carregar, prazoVaga, etapa, retornoPendente } from '../selecao.js?v=5';
-import { modalVaga, novoCandidato, moverEtapa, fichaCandidato, levarParaVaga, fmtQuando } from '../selecao-ui.js?v=5';
+import { ETAPAS, STATUS_VAGA } from '../config.js?v=6';
+import { $, $$, esc, iniciais, fmtData, st, pill, vazio, modal, toast, erroAmigavel, confirmar, hojeISO } from '../ui.js?v=6';
+import { carregar, prazoVaga, etapa, retornoPendente } from '../selecao.js?v=6';
+import { modalVaga, novoCandidato, moverEtapa, fichaCandidato, levarParaVaga, fmtQuando } from '../selecao-ui.js?v=6';
 
 let verFora = false, verAdm = false;
 

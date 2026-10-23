@@ -1,8 +1,8 @@
 // ============================================================================
 // Vagas e seleção — regras compartilhadas entre as telas, o início e o sino.
 // ============================================================================
-import { ETAPAS, STATUS_SOL } from './config.js?v=5';
-import { hojeISO, somarDias, diasEntre } from './ui.js?v=5';
+import { ETAPAS, STATUS_SOL } from './config.js?v=6';
+import { hojeISO, somarDias, diasEntre } from './ui.js?v=6';
 
 export const etapa = id => ETAPAS.find(e => e.id === id) || ETAPAS[0];
 export const ordemEtapa = id => Math.max(0, ETAPAS.findIndex(e => e.id === id));
