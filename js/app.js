@@ -2,10 +2,10 @@
 // Gestão de Pessoas — Raguife · casca do sistema
 // Login, primeiro acesso, menu por permissão, rotas, busca rápida e pendências.
 // ============================================================================
-import { D } from './dados.js?v=2';
-import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=2';
-import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=2';
-import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=2';
+import { D } from './dados.js?v=3';
+import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=3';
+import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=3';
+import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=3';
 
 const ctx = {
   D, perfil: null, uid: null,
@@ -132,7 +132,7 @@ function iniciarApp() {
     $('#abrir-menu').onclick = () => document.body.classList.toggle('menu-aberto');
     $('#busca-topo').onclick = abrirBusca;
     $('#sino').onclick = abrirPendencias;
-    window.addEventListener('hashchange', rotear);
+    window.addEventListener('hashchange', e => { const h = (e.oldURL.split('#')[1] || ''); if (h && !h.startsWith('/pessoa/')) window.__gpAnterior = '#' + h; rotear(); });
     document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !$('#app').hidden) { e.preventDefault(); abrirBusca(); } });
     if (DEMO) { const f = document.createElement('div'); f.className = 'demo-faixa'; f.textContent = 'Modo demonstração · dados fictícios'; document.body.appendChild(f); }
   }
@@ -201,7 +201,7 @@ async function rotear() {
   if (!permitido) { el.innerHTML = `<section class="card vazio"><span class="ic" style="background:var(--verm-bg);color:var(--verm)"><i class="ti ti-lock"></i></span><h2 class="d">Você não tem acesso a esta tela</h2><p>Peça ao administrador do RH para liberar o módulo no seu usuário.</p><a class="btn" href="#/inicio"><i class="ti ti-arrow-left"></i>Voltar ao início</a></section>`; return; }
   el.innerHTML = '<div class="card" style="padding:20px">' + [1, 2, 3, 4].map(() => '<div class="esq-l" style="height:18px;margin:12px 0"></div>').join('') + '</div>';
   try {
-    const mod = await import(`./modulos/${TELAS[rota]}.js?v=2`);
+    const mod = await import(`./modulos/${TELAS[rota]}.js?v=3`);
     if (n !== rotaAtual) return;
     await mod.render(el, ctx, param);
     document.title = (info ? info.nome + ' — ' : '') + 'Gestão de Pessoas';

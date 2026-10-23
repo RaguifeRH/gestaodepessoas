@@ -1,6 +1,6 @@
 // Usuários e acessos (só administrador).
-import { MODULOS } from '../config.js?v=2';
-import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=2';
+import { MODULOS } from '../config.js?v=3';
+import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=3';
 
 export async function render(el, ctx) {
   const lista = await ctx.D.listarUsuarios();

@@ -77,6 +77,11 @@ export async function montar(linhas, filiaisPermitidas) {
     if (!porCpf.has(cpf)) porCpf.set(cpf, []);
     porCpf.get(cpf).push(l);
   }
+  // O FO1029 repete a mesma matrícula quando muda salário, setor ou cargo; a última linha é a mais recente.
+  for (const [cpf, ls] of porCpf) {
+    const porMat = new Map(); ls.forEach(l => porMat.set(txt(l['Matrícula']) || Symbol(), l));
+    porCpf.set(cpf, [...porMat.values()]);
+  }
   const pessoas = [], itens = [];
   const stats = { linhas: linhas.length, ignoradas, pessoas: 0, recontratados: 0, porGrupo: {}, porFilial: {} };
   for (const [cpf, ls] of porCpf) {

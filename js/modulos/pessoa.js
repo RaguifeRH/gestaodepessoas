@@ -1,7 +1,7 @@
 // Pasta da pessoa: jornada, linha do tempo, documentos, vínculos e dados.
-import { TIPOS_EVENTO } from '../config.js?v=2';
-import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=2';
-import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=2';
+import { TIPOS_EVENTO } from '../config.js?v=3';
+import { $, $$, esc, iniciais, fmtData, fmtDataHora, hojeISO, diasEntre, fmtReais, pill, modal, toast, erroAmigavel, vazio } from '../ui.js?v=3';
+import { NOME_GRUPO, formatarCpf } from '../fo1029.js?v=3';
 
 export async function render(el, ctx, id) {
   const p = await ctx.D.pessoa(id);
@@ -22,14 +22,15 @@ export async function render(el, ctx, id) {
 
   // Linha do tempo: registros + marcos dos vínculos
   const auto = [];
-  (p.vinculos || []).forEach(v => {
+  [a].filter(v => v.admissao || v.demissao).forEach(v => { // só o vínculo atual; os anteriores ficam na aba Vínculos
     if (v.admissao) auto.push({ data: v.admissao, tipo: 'Admissão', titulo: `${v.cargo} · ${v.filial}`, porNome: 'FO1029', auto: true });
     if (v.demissao) auto.push({ data: v.demissao, tipo: 'Desligamento', titulo: v.tipoDemissao || 'Desligamento', porNome: 'FO1029', auto: true });
   });
   const linha = [...eventos, ...auto].sort((x, y) => (y.data || '').localeCompare(x.data || ''));
 
   const corG = { ativo: 'ok', afastado: 'sol', desligando: 'amb', desligado: '' }[g];
-  el.innerHTML = `<section class="card" style="margin-bottom:18px">
+  el.innerHTML = `<button class="btn ghost sm" id="voltar" style="margin-bottom:12px"><i class="ti ti-arrow-left"></i>Voltar</button>
+  <section class="card" style="margin-bottom:18px">
     <div class="pessoa-h"><span class="av g">${esc(iniciais(p.nome))}</span><div><h2 class="d">${esc(p.nome)}</h2><div class="meta"><span>CPF ${esc(p.cpfMasc)}</span><span>${esc(a.cargo || '')}</span><span>${esc(a.filial || '')}</span><span>Matrícula ${esc(a.matricula || '')}</span>${a.admissao ? `<span>Desde ${fmtData(a.admissao)}</span>` : ''}</div></div>
       <div class="acoes" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${pill(a.status || NOME_GRUPO[g], corG)}<button class="btn" id="imprimir"><i class="ti ti-printer"></i>Imprimir dossiê</button></div></div>
     <div class="trilha-p"><i class="feito" style="width:calc(${pctTrilho}% - ${pctTrilho ? 10 : 0}px)"></i>${etapas.map(e => `<div class="${e[1]}"><span>${e[1] === 'ok' ? '<i class="ti ti-check"></i>' : ''}</span>${e[0]}</div>`).join('')}</div>
@@ -82,6 +83,7 @@ export async function render(el, ctx, id) {
     if (r === 'enviar') { toast('Documento anexado.'); render(el, ctx, id); setTimeout(() => $('[data-p="docs"]').click(), 0); }
   };
 
+  $('#voltar').onclick = () => { location.hash = window.__gpAnterior || '#/pessoas'; };
   $('#imprimir').onclick = () => {
     const w = window.open('', '_blank'); if (!w) return toast('Permita pop-ups para imprimir.', 'erro');
     w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Dossiê · ${esc(p.nome)}</title><style>body{font:12px/1.5 Arial,sans-serif;color:#15201a;margin:28px}h1{font-size:20px;margin:0;color:#01361d}h2{font-size:14px;color:#01361d;border-bottom:2px solid #9dcd46;padding-bottom:3px;margin-top:22px}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #dbe4dc;padding:5px;text-align:left;vertical-align:top}small{color:#55635a}.cab{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:4px solid #01361d;padding-bottom:10px}</style></head><body>
