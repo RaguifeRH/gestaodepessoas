@@ -2,13 +2,15 @@
 // Gestão de Pessoas — Raguife · casca do sistema
 // Login, primeiro acesso, menu por permissão, rotas, busca rápida e pendências.
 // ============================================================================
-import { D } from './dados.js?v=4';
-import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=4';
-import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=4';
-import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=4';
+import { D } from './dados.js?v=5';
+import { MODULOS, MODULOS_ADMIN, ADMIN_INICIAL, DEMO } from './config.js?v=5';
+import { $, $$, esc, iniciais, norm, toast, erroAmigavel, st, fmtData } from './ui.js?v=5';
+import { pendenciasExperiencia, aniversariantes } from './pendencias.js?v=5';
+import { carregar as carregarSelecao, pendenciasSelecao } from './selecao.js?v=5';
 
 const ctx = {
   D, perfil: null, uid: null,
+  _sel: null,
   pode(m) { const p = this.perfil; return !!p && p.ativo !== false && (p.perfil === 'admin' || (p.modulos || []).includes(m)); },
   admin() { return this.perfil && this.perfil.perfil === 'admin'; },
   nome() { return (this.perfil && this.perfil.nome) || ''; },
@@ -100,7 +102,8 @@ function telaSemAcesso(texto) {
 // Login e perfil
 // ---------------------------------------------------------------------------
 D.aoMudarLogin(async u => {
-  if (!u) { ctx.perfil = null; ctx._resumo = null; ctx._exp = null; return telaLogin(); }
+  if (!u) { ctx.perfil = null; ctx._resumo = null; ctx._exp = null; ctx._sel = null; return telaLogin(); }
+  if (u.anonimo) { D.sair(); return; } // sessão anônima do pedido de vaga/N2 neste navegador: não serve para o sistema
   mostrar('carregando');
   ctx.uid = u.uid;
   try {
@@ -132,7 +135,7 @@ function iniciarApp() {
     $('#abrir-menu').onclick = () => document.body.classList.toggle('menu-aberto');
     $('#busca-topo').onclick = abrirBusca;
     $('#sino').onclick = abrirPendencias;
-    window.addEventListener('hashchange', e => { const h = (e.oldURL.split('#')[1] || ''); if (h && !h.startsWith('/pessoa/')) window.__gpAnterior = '#' + h; rotear(); });
+    window.addEventListener('hashchange', e => { const h = (e.oldURL.split('#')[1] || ''); if (h && !h.startsWith('/pessoa/') && !h.startsWith('/vaga/')) window.__gpAnterior = '#' + h; rotear(); });
     document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && !$('#app').hidden) { e.preventDefault(); abrirBusca(); } });
     if (DEMO) { const f = document.createElement('div'); f.className = 'demo-faixa'; f.textContent = 'Modo demonstração · dados fictícios'; document.body.appendChild(f); }
   }
@@ -142,7 +145,7 @@ function iniciarApp() {
 
 function rotasDisponiveis() {
   const r = [{ id: 'inicio', nome: 'Início', grupo: null, ic: 'ti-home' }];
-  MODULOS.filter(m => m.grupo && ctx.pode(m.id)).forEach(m => r.push(m));
+  MODULOS.filter(m => m.grupo && ctx.pode(m.perm || m.id)).forEach(m => r.push(m));
   if (ctx.admin()) MODULOS_ADMIN.forEach(m => r.push(m));
   return r;
 }
@@ -151,7 +154,7 @@ let FECHADOS = {}; try { FECHADOS = JSON.parse(localStorage.getItem('gp-menu') |
 let CONTADORES = {};
 function montarMenu() {
   const atual = (location.hash.slice(2).split('/')[0]) || 'inicio';
-  const ativo = atual === 'pessoa' ? 'pessoas' : atual;
+  const ativo = ({ pessoa: 'pessoas', vaga: 'vagas' })[atual] || atual;
   const rotas = rotasDisponiveis(); const grupos = [];
   rotas.forEach(r => { let g = grupos.find(x => x.g === r.grupo); if (!g) grupos.push(g = { g: r.grupo, itens: [] }); g.itens.push(r); });
   let h = '<button class="atalho-k" id="ir-para"><i class="ti ti-search"></i>Ir para…<kbd>Ctrl K</kbd></button>';
@@ -174,6 +177,9 @@ async function atualizarContadores() {
       const p = pendenciasExperiencia(r.itens, ex, await ctx.inicioExp());
       if (p.length) CONTADORES.experiencia = { n: p.length, atr: p.some(x => x.estado === 'atr') };
     }
+    if (ctx.pode('selecao')) {
+      pendenciasSelecao(await carregarSelecao(ctx)).filter(x => !x.naoConta).forEach(x => { const c = CONTADORES[x.id] = CONTADORES[x.id] || { n: 0, atr: false }; c.n += x.n; c.atr = c.atr || x.estado === 'atr'; });
+    }
     montarMenu();
     const total = Object.values(CONTADORES).reduce((s, c) => s + c.n, 0);
     const sino = $('#sino'); sino.querySelector('.dot')?.remove(); if (total) sino.insertAdjacentHTML('beforeend', '<span class="dot"></span>');
@@ -184,26 +190,28 @@ ctx.atualizarContadores = atualizarContadores;
 // ---------------------------------------------------------------------------
 // Rotas
 // ---------------------------------------------------------------------------
-const TELAS = { inicio: 'inicio', pessoas: 'pessoas', pessoa: 'pessoa', experiencia: 'experiencia', painel_rh: 'painel', importar: 'importar', usuarios: 'usuarios' };
+const TELAS = { inicio: 'inicio', pessoas: 'pessoas', pessoa: 'pessoa', experiencia: 'experiencia', painel_rh: 'painel', importar: 'importar', usuarios: 'usuarios',
+  solicitacoes: 'solicitacoes', vagas: 'vagas', vaga: 'vaga', curriculos: 'curriculos', agenda: 'agenda', migracao: 'migracao' };
+const MAE = { pessoa: 'pessoas', vaga: 'vagas' }; // telas de detalhe herdam a permissão e o menu da lista
 let rotaAtual = 0;
 async function rotear() {
   if (!ctx.perfil) return;
-  const partes = location.hash.slice(2).split('/'); const rota = partes[0] || 'inicio', param = decodeURIComponent(partes[1] || '');
+  const partes = location.hash.slice(2).split('/'); const rota = partes[0] || 'inicio', param = decodeURIComponent(partes[1] || ''), param2 = decodeURIComponent(partes[2] || '');
   document.body.classList.remove('menu-aberto');
   montarMenu();
-  const info = rotasDisponiveis().find(r => r.id === (rota === 'pessoa' ? 'pessoas' : rota));
-  $('#migalha').innerHTML = info ? (info.grupo ? esc(info.grupo) + ' / ' : '') + '<b>' + esc(rota === 'pessoa' ? 'Pasta da pessoa' : info.nome) + '</b>' : '<b>Gestão de Pessoas</b>';
+  const info = [...MODULOS, ...MODULOS_ADMIN, { id: 'inicio', nome: 'Início' }].find(r => r.id === (MAE[rota] || rota));
+  $('#migalha').innerHTML = info ? (info.grupo ? esc(info.grupo) + ' / ' : '') + '<b>' + esc(rota === 'pessoa' ? 'Pasta da pessoa' : rota === 'vaga' ? 'Vaga' : info.nome) + '</b>' : '<b>Gestão de Pessoas</b>';
   const el = $('#conteudo'); const n = ++rotaAtual;
   const acc = { experiencia: 'verde', pessoas: 'verde', pessoa: 'verde', painel_rh: 'verde', importar: 'verde', usuarios: 'verde' }[rota] || 'verde';
   el.setAttribute('data-acc', acc);
-  const permitido = rota === 'inicio' || (rota === 'pessoa' ? ctx.pode('pessoas') : rota === 'usuarios' ? ctx.admin() : ctx.pode(rota));
+  const permitido = rota === 'inicio' || ((rota === 'usuarios' || rota === 'migracao') ? ctx.admin() : info ? ctx.pode(info.perm || info.id) : false);
   if (!TELAS[rota]) { el.innerHTML = `<section class="card vazio"><span class="ic"><i class="ti ti-map-off"></i></span><h2 class="d">Página não encontrada</h2><p>O endereço pode ter mudado.</p><a class="btn" href="#/inicio"><i class="ti ti-arrow-left"></i>Voltar ao início</a></section>`; return; }
   if (!permitido) { el.innerHTML = `<section class="card vazio"><span class="ic" style="background:var(--verm-bg);color:var(--verm)"><i class="ti ti-lock"></i></span><h2 class="d">Você não tem acesso a esta tela</h2><p>Peça ao administrador do RH para liberar o módulo no seu usuário.</p><a class="btn" href="#/inicio"><i class="ti ti-arrow-left"></i>Voltar ao início</a></section>`; return; }
   el.innerHTML = '<div class="card" style="padding:20px">' + [1, 2, 3, 4].map(() => '<div class="esq-l" style="height:18px;margin:12px 0"></div>').join('') + '</div>';
   try {
-    const mod = await import(`./modulos/${TELAS[rota]}.js?v=4`);
+    const mod = await import(`./modulos/${TELAS[rota]}.js?v=5`);
     if (n !== rotaAtual) return;
-    await mod.render(el, ctx, param);
+    await mod.render(el, ctx, param, param2);
     document.title = (info ? info.nome + ' — ' : '') + 'Gestão de Pessoas';
     window.scrollTo(0, 0);
   } catch (err) {
@@ -226,20 +234,23 @@ async function abrirBusca() {
   document.body.appendChild(bg);
   const q = $('#cmdk-q'); q.focus();
   const itens = ctx.pode('pessoas') ? (await ctx.resumo()).itens : [];
+  const cands = ctx.pode('selecao') ? (await carregarSelecao(ctx).catch(() => ({ candidatos: [] }))).candidatos : [];
   let sel = 0, res = [];
   const listar = () => {
     const t = norm(q.value.trim()), dig = q.value.replace(/\D/g, '');
     const mods = rotasDisponiveis().filter(r => !t || norm(r.nome).includes(t)).map(r => ({ tipo: 'm', r }));
     let pes = [];
     if (t.length >= 2 || dig.length >= 3) pes = itens.filter(x => norm(x.n).includes(t) || (dig && (x.m === dig || x.cm.replace(/\D/g, '').includes(dig)))).slice(0, 8).map(x => ({ tipo: 'p', x }));
-    res = [...pes, ...mods];
+    const cs = t.length >= 2 ? cands.filter(c => norm(c.nome).includes(t)).slice(0, 6).map(c => ({ tipo: 'c', c })) : [];
+    res = [...pes, ...cs, ...mods];
     $('#cmdk-l').innerHTML = (pes.length ? '<div class="cmdk-sec">Pessoas</div>' : '') + pes.map((p, i) => `<div class="cmdk-it" data-i="${i}"><span class="av">${esc(iniciais(p.x.n))}</span><div><b>${esc(p.x.n)}</b><small>${esc(p.x.c)} · ${esc(p.x.f)} · matrícula ${esc(p.x.m)}</small></div></div>`).join('')
-      + (mods.length ? '<div class="cmdk-sec">Módulos</div>' : '') + mods.map((m, i) => `<div class="cmdk-it" data-i="${pes.length + i}"><span class="ic"><i class="ti ${m.r.ic}"></i></span><div><b>${esc(m.r.nome)}</b><small>${esc(m.r.grupo || 'Início')}</small></div></div>`).join('')
+      + (cs.length ? '<div class="cmdk-sec">Candidatos</div>' : '') + cs.map((c, i) => `<div class="cmdk-it" data-i="${pes.length + i}"><span class="av">${esc(iniciais(c.c.nome))}</span><div><b>${esc(c.c.nome)}</b><small>${esc(c.c.vagaCodigo ? c.c.vagaCodigo + ' · ' + (c.c.vagaCargo || '') : 'Banco de currículos')}</small></div></div>`).join('')
+      + (mods.length ? '<div class="cmdk-sec">Módulos</div>' : '') + mods.map((m, i) => `<div class="cmdk-it" data-i="${pes.length + cs.length + i}"><span class="ic"><i class="ti ${m.r.ic}"></i></span><div><b>${esc(m.r.nome)}</b><small>${esc(m.r.grupo || 'Início')}</small></div></div>`).join('')
       || '<div class="cmdk-sec">Nada encontrado.</div>';
     sel = Math.min(sel, res.length - 1); marcar();
   };
   const marcar = () => $$('.cmdk-it').forEach((x, i) => { x.classList.toggle('sel', i === sel); if (i === sel) x.scrollIntoView({ block: 'nearest' }); });
-  const abrir = i => { const r = res[i]; if (!r) return; fechar(); location.hash = r.tipo === 'p' ? '#/pessoa/' + r.x.i : '#/' + r.r.id; };
+  const abrir = i => { const r = res[i]; if (!r) return; fechar(); location.hash = r.tipo === 'p' ? '#/pessoa/' + r.x.i : r.tipo === 'c' ? (r.c.vagaId ? '#/vaga/' + r.c.vagaId + '/' + r.c.id : '#/curriculos/c/' + r.c.id) : '#/' + r.r.id; };
   $('#cmdk-l').addEventListener('click', e => { const it = e.target.closest('.cmdk-it'); if (it) abrir(+it.dataset.i); });
   q.addEventListener('input', () => { sel = 0; listar(); });
   q.addEventListener('keydown', e => {
@@ -269,6 +280,10 @@ async function abrirPendencias() {
       const r = await ctx.resumo(), ex = await ctx.experiencias();
       const p = pendenciasExperiencia(r.itens, ex, await ctx.inicioExp());
       h += '<div class="cmdk-sec">Experiência</div>' + (p.length ? p.slice(0, 30).map(x => `<a class="aviso" href="#/experiencia"><span class="ic" style="background:${x.estado === 'atr' ? 'var(--verm-bg)' : 'var(--ceu-bg)'};color:${x.estado === 'atr' ? 'var(--verm)' : 'var(--ceu-tx)'}"><i class="ti ti-hourglass"></i></span><span><b>${esc(x.pessoa.n)}: ${esc(x.marco.nome.toLowerCase())}</b><small>${st(x.estado)} venceu em ${fmtData(x.data)}</small></span></a>`).join('') : '<p class="small muted" style="padding:0 10px">Nada pendente.</p>');
+    }
+    if (ctx.pode('selecao')) {
+      const p = pendenciasSelecao(await carregarSelecao(ctx));
+      h += '<div class="cmdk-sec">Vagas e seleção</div>' + (p.length ? p.map(x => `<a class="aviso" href="${x.link}"><span class="ic" style="background:${x.estado === 'atr' ? 'var(--verm-bg)' : 'var(--ceu-bg)'};color:${x.estado === 'atr' ? 'var(--verm)' : 'var(--ceu-tx)'}"><i class="ti ${x.ic}"></i></span><span><b>${esc(x.titulo)}</b><small>${esc(x.sub || '')}</small></span></a>`).join('') : '<p class="small muted" style="padding:0 10px">Nada pendente.</p>');
     }
     if (ctx.pode('pessoas')) {
       const r = await ctx.resumo(); const an = aniversariantes(r.itens, 1);

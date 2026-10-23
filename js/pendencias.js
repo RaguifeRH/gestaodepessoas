@@ -1,8 +1,8 @@
 // ============================================================================
 // Cálculo das pendências (usado no Início, no sino e nos números do menu)
 // ============================================================================
-import { MARCOS } from './config.js?v=4';
-import { hojeISO, somarDias, diasEntre } from './ui.js?v=4';
+import { MARCOS } from './config.js?v=5';
+import { hojeISO, somarDias, diasEntre } from './ui.js?v=5';
 
 // Quem está em experiência: ativo, admissão nos últimos 100 dias, tipo Normal.
 export function emExperiencia(itens) {

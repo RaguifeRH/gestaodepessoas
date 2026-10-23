@@ -2,8 +2,8 @@
 // Camada de dados — todo acesso ao banco passa por aqui.
 // Dois modos: Firebase (real) e demonstração (fictício, só neste navegador).
 // ============================================================================
-import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=4';
-import { itemResumo, montar } from './fo1029.js?v=4';
+import { firebaseConfig, FB_VERSAO, DEMO, ADMIN_INICIAL } from './config.js?v=5';
+import { itemResumo, montar } from './fo1029.js?v=5';
 
 const agora = () => new Date().toISOString();
 const LOTE = 400; // operações por lote de gravação (limite do Firestore é 500)
@@ -41,7 +41,8 @@ async function criarFirebase() {
   return {
     demo: false,
     // ---- login ----
-    aoMudarLogin: cb => AU.onAuthStateChanged(auth, u => { usuarioAuth = u; cb(u ? { uid: u.uid, email: u.email } : null); }),
+    aoMudarLogin: cb => AU.onAuthStateChanged(auth, u => { usuarioAuth = u; cb(u ? { uid: u.uid, email: u.email, anonimo: u.isAnonymous } : null); }),
+    entrarAnonimo: () => usuarioAuth ? Promise.resolve() : AU.signInAnonymously(auth),
     entrar: (email, senha) => AU.signInWithEmailAndPassword(auth, email, senha),
     criarMinhaConta: (email, senha) => AU.createUserWithEmailAndPassword(auth, email, senha),
     sair: () => AU.signOut(auth),
@@ -116,6 +117,34 @@ async function criarFirebase() {
     },
     importacoes: () => lerCol(F.query(c('importacoes'), F.orderBy('criadoEm', 'desc'), F.limit(20))),
 
+    // ---- coleções simples (vagas e seleção) ----
+    listar: col => lerCol(c(col)),
+    ler: (col, id) => lerDoc(col, id),
+    lerSub: (col, id, sub, doc) => lerDoc(col, id, sub, doc),
+    async criar(col, dados) { const r = await F.addDoc(c(col), { ...dados, criadoEm: agora(), porUid: usuarioAuth.uid }); return r.id; },
+    definir: (col, id, dados) => F.setDoc(d(col, id), { ...dados, editadoEm: agora(), editadoPor: usuarioAuth.uid }, { merge: true }),
+    definirSub: (col, id, sub, doc, dados) => F.setDoc(d(col, id, sub, doc), { ...dados, editadoEm: agora() }, { merge: true }),
+    atualizar: (col, id, dados) => F.updateDoc(d(col, id), { ...dados, editadoEm: agora(), editadoPor: usuarioAuth.uid }),
+    // Pedido público (gestor) e resposta do N2: sem login de usuário, com sessão anônima.
+    async criarPublico(col, dados) { const r = await F.addDoc(c(col), dados); return r.id; },
+    atualizarPublico: (col, id, dados) => F.updateDoc(d(col, id), dados),
+    async proximoCodigo(chave) {
+      return F.runTransaction(db, async t => {
+        const r = d('config', 'contadores'); const sn = await t.get(r);
+        const n = ((sn.exists() && sn.data()[chave]) || 0) + 1;
+        t.set(r, { [chave]: n }, { merge: true }); return n;
+      });
+    },
+    // Gravação em massa (migração dos sistemas antigos). ops: [{ caminho:[...], dados }]
+    gravarLote: (ops, aoProgredir) => gravarEmLotes(ops.map(o => ({ ref: d(...o.caminho), dados: o.dados, merge: o.merge })), aoProgredir),
+    anexosDe: (col, id) => lerCol(F.query(c(col, id, 'anexos'), F.orderBy('criadoEm', 'desc'))),
+    async enviarAnexoEm(col, id, arquivo, descricao, aoProgredir, porNome) {
+      const caminho = `${col}/${id}/${Date.now()}-${arquivo.name.replace(/[^\w.\-]+/g, '_')}`;
+      const ref = S.ref(st, caminho);
+      await new Promise((ok, erro) => { const t = S.uploadBytesResumable(ref, arquivo, { contentType: arquivo.type }); t.on('state_changed', s => aoProgredir && aoProgredir(s.bytesTransferred / s.totalBytes), erro, ok); });
+      await F.addDoc(c(col, id, 'anexos'), { nome: arquivo.name, descricao, caminho, tamanho: arquivo.size, tipo: arquivo.type, porNome: porNome || '', porUid: usuarioAuth.uid, criadoEm: agora() });
+    },
+
     // ---- registro de atividades ----
     log: (acao, detalhe) => F.addDoc(c('logs'), { acao, detalhe: detalhe || '', porUid: usuarioAuth.uid, criadoEm: agora() }).catch(() => {}),
   };
@@ -125,7 +154,7 @@ async function criarFirebase() {
 // DEMONSTRAÇÃO (dados fictícios no navegador)
 // ---------------------------------------------------------------------------
 async function criarDemo() {
-  const CHAVE = 'gp-demo-v2';
+  const CHAVE = 'gp-demo-v3';
   let B = null;
   try { B = JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) {}
   let soMemoria = false; // depois de importar um arquivo de verdade, nada mais é gravado no navegador
@@ -135,6 +164,8 @@ async function criarDemo() {
   let logado = null; try { logado = JSON.parse(sessionStorage.getItem('gp-demo-login') || 'null'); } catch (e) {}
   let ouvinte = null;
   const espera = ms => new Promise(r => setTimeout(r, ms));
+  const clone = x => x == null ? x : JSON.parse(JSON.stringify(x));
+  B.cols = B.cols || {}; B.subs = B.subs || {}; B.contadores = B.contadores || {};
 
   return {
     demo: true,
@@ -176,6 +207,34 @@ async function criarDemo() {
       B.importacoes.unshift({ id: 'i' + Date.now(), ...info, porUid: logado.uid, criadoEm: agora() }); salvar();
     },
     async importacoes() { return B.importacoes.slice(0, 20); },
+    async entrarAnonimo() {},
+    async listar(col) { return Object.entries(B.cols[col] || {}).map(([id, x]) => ({ id, ...clone(x) })); },
+    async ler(col, id) { const x = (B.cols[col] || {})[id]; return x ? { id, ...clone(x) } : null; },
+    async lerSub(col, id, sub, doc) { return clone((B.subs[col + '/' + id + '/' + sub] || {})[doc] || null); },
+    async criar(col, dados) { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); (B.cols[col] = B.cols[col] || {})[id] = { ...clone(dados), criadoEm: agora(), porUid: logado?.uid || 'anon' }; salvar(); return id; },
+    async definir(col, id, dados) { const m = (B.cols[col] = B.cols[col] || {}); m[id] = { ...(m[id] || {}), ...clone(dados), editadoEm: agora() }; salvar(); },
+    async definirSub(col, id, sub, doc, dados) { const k = col + '/' + id + '/' + sub; const m = (B.subs[k] = B.subs[k] || {}); m[doc] = { ...(m[doc] || {}), ...clone(dados) }; salvar(); },
+    async atualizar(col, id, dados) { const m = B.cols[col] || {}; if (!m[id]) throw new Error('Registro não encontrado.'); Object.assign(m[id], clone(dados), { editadoEm: agora() }); salvar(); },
+    async criarPublico(col, dados) { return this.criar(col, dados); },
+    async atualizarPublico(col, id, dados) { const m = B.cols[col] || {}; Object.assign(m[id], clone(dados)); salvar(); },
+    async proximoCodigo(chave) { B.contadores[chave] = (B.contadores[chave] || 0) + 1; salvar(); return B.contadores[chave]; },
+    async gravarLote(ops, aoProgredir) {
+      soMemoria = true; let n = 0;
+      for (const o of ops) {
+        const [col, id, sub, doc] = o.caminho;
+        if (sub) { const k = col + '/' + id + '/' + sub; (B.subs[k] = B.subs[k] || {})[doc] = clone(o.dados); }
+        else if (col === 'config') B.config[id] = { ...(o.merge ? B.config[id] || {} : {}), ...clone(o.dados) };
+        else { const m = (B.cols[col] = B.cols[col] || {}); m[id] = { ...(o.merge ? m[id] || {} : {}), ...clone(o.dados) }; }
+        if (++n % 300 === 0) { aoProgredir && aoProgredir(n, ops.length); await espera(5); }
+      }
+      aoProgredir && aoProgredir(ops.length, ops.length);
+    },
+    async anexosDe(col, id) { return (B.anexos[col + '/' + id] || []).slice().reverse(); },
+    async enviarAnexoEm(col, id, arquivo, descricao, aoProgredir, porNome) {
+      for (let p = 0; p <= 1; p += .25) { aoProgredir && aoProgredir(p); await espera(60); }
+      const caminho = `demo/${col}/${id}/${Date.now()}-${arquivo.name}`; urls[caminho] = URL.createObjectURL(arquivo);
+      (B.anexos[col + '/' + id] = B.anexos[col + '/' + id] || []).push({ id: 'a' + Date.now(), nome: arquivo.name, descricao, caminho, tamanho: arquivo.size, tipo: arquivo.type, porNome: porNome || '', criadoEm: agora() }); salvar();
+    },
     async log() {},
     async zerarDemo() { try { localStorage.removeItem(CHAVE); } catch (e) {} B = await semente(); salvar(); },
   };
@@ -202,7 +261,43 @@ async function semente() {
     pessoas: {}, privado: {}, eventos: {}, anexos: {}, experiencia: {}, resumo: { itens, atualizadoEm: agora() }, importacoes: [], logs: [],
     config: { experiencia: { inicio: (() => { const x = new Date(); x.setDate(x.getDate() - 40); return x.toISOString().slice(0, 10); })() } } };
   pessoas.forEach(p => { B.pessoas[p.id] = p.pub; B.privado[p.id] = p.priv; });
+  sementeSelecao(B);
   return B;
+}
+
+// Pedidos, vagas e candidatos fictícios para o modo demonstração.
+function sementeSelecao(B) {
+  B.cols = {}; B.subs = {};
+  const ag = (dias, h = 9) => { const x = new Date(); x.setDate(x.getDate() + dias); x.setHours(h, 0, 0, 0); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
+  const dia = d => ag(d).slice(0, 10);
+  const quem = 'Renata Lima Duarte';
+  B.config.selecao = { setores: ['Transporte', 'Produção', 'Manutenção', 'Expedição', 'Administrativo', 'Recursos Humanos'], escalas: ['6x1 · 07h às 15h20', '6x1 · 15h20 às 23h40', 'Segunda a sexta · comercial', '12x36'], perfis: [{ nome: 'Operacional', sla: 10 }, { nome: 'Administrativo', sla: 15 }, { nome: 'Motorista', sla: 30 }, { nome: 'Manutenção', sla: 25 }] };
+  B.config.selecao_n2 = { lista: [{ nome: 'Carlos Menezes', email: 'carlos.menezes@raguife.com.br', setor: 'Transporte' }, { nome: 'Helena Prado', email: 'helena.prado@raguife.com.br', setor: 'Produção' }] };
+  B.contadores = { vaga_2026: 3, sol_2026: 4 };
+  B.cols.solicitacoes = {
+    s1: { codigo: 'SOL-2026-004', gestor: 'Marcos Vieira', email: 'marcos.vieira@raguife.com.br', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', setor: 'Expedição', cargo: 'Auxiliar de expedição', motivo: 'Aumento de quadro', qtd: 2, escala: '6x1 · 07h às 15h20', substituido: '', requisitos: 'Ensino fundamental, disponibilidade de horário.', obs: 'Aumento da produção no fim do ano.', status: 'pendente', historico: [{ dt: new Date().toISOString(), acao: 'Pedido enviado pelo gestor', por: 'Marcos Vieira' }], criadoEm: new Date().toISOString() },
+    s2: { codigo: 'SOL-2026-003', gestor: 'Igor Batista', email: 'igor.batista@raguife.com.br', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', setor: 'Transporte', cargo: 'Motorista de truck', motivo: 'Substituição', qtd: 1, escala: '6x1 · 07h às 15h20', substituido: 'Kleber Antunes', requisitos: 'CNH D, curso MOPP.', obs: '', status: 'com_n2', n2Nome: 'Carlos Menezes', n2Email: 'carlos.menezes@raguife.com.br', historico: [{ dt: ag(-3), acao: 'Pedido enviado pelo gestor', por: 'Igor Batista' }, { dt: ag(-3, 11), acao: 'Encaminhado ao N2 Carlos Menezes', por: quem }], criadoEm: ag(-3) },
+    s3: { codigo: 'SOL-2026-002', gestor: 'Helena Prado', email: 'helena.prado@raguife.com.br', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', setor: 'Produção', cargo: 'Operador de produção', motivo: 'Reposição', qtd: 1, escala: '6x1 · 15h20 às 23h40', substituido: '', requisitos: '', obs: '', status: 'aprovado_n2', n2Nome: 'Helena Prado', n2Resposta: { decisao: 'aprovado', em: ag(-1), obs: '' }, historico: [{ dt: ag(-2), acao: 'Pedido enviado pelo gestor', por: 'Helena Prado' }, { dt: ag(-1), acao: 'N2 aprovou', por: 'Helena Prado' }], criadoEm: ag(-2) },
+  };
+  B.cols.vagas = {
+    v1: { codigo: 'RH-2026-003', cargo: 'Ajudante de motorista', setor: 'Transporte', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', perfil: 'Operacional', motivo: 'Aumento de quadro', qtd: 2, escala: '6x1 · 07h às 15h20', gestor: 'Carlos Menezes', abertura: dia(-6), sla: 10, status: 'aberta', requisitos: 'Ensino fundamental.', criadoEm: ag(-6) },
+    v2: { codigo: 'RH-2026-002', cargo: 'Assistente de faturamento', setor: 'Administrativo', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', perfil: 'Administrativo', motivo: 'Substituição', qtd: 1, escala: 'Segunda a sexta · comercial', gestor: 'Daniela Reis', abertura: dia(-20), sla: 15, status: 'aberta', criadoEm: ag(-20) },
+    v3: { codigo: 'RH-2026-001', cargo: 'Mecânico industrial', setor: 'Manutenção', empresa: 'RAGUIFE INDUSTRIA E COMERCIO DE RACOES LTDA', perfil: 'Manutenção', motivo: 'Reposição', qtd: 1, escala: '6x1 · 07h às 15h20', gestor: 'Gustavo Neves', abertura: dia(-40), sla: 25, status: 'encerrada', criadoEm: ag(-40) },
+  };
+  const C = (nome, vaga, etapa, extra = {}) => ({ nome, tel: '(17) 9' + String(Math.abs(nome.length * 7919) % 10000).padStart(4, '0') + '-0000', cidade: 'Jales/SP', area: extra.area || '', origem: extra.origem || 'WhatsApp', vagaId: vaga, etapa, situacao: 'andamento', datas: {}, checks: {}, historico: [{ etapa, em: ag(-2), porNome: quem }], porNome: quem, criadoEm: ag(-5), ...extra });
+  B.cols.candidatos = {
+    c1: C('Bruno Teixeira', 'v1', 'ent_ag', { origem: 'Indicação', indicadoPor: 'Wesley Carvalho', datas: { entrevista: ag(0, 14) } }),
+    c2: C('Larissa Monteiro', 'v1', 'ent_ag', { datas: { entrevista: ag(1, 9) } }),
+    c3: C('Patrícia Lemos', 'v1', 'ent_re', { cpfMasc: '***.481.226-**', resultadoEntrevista: 'apto', checks: { ficha: 'recebida' }, datas: { entrevista: ag(-1, 10) } }),
+    c4: C('Juliana Prado', 'v1', 'teste_ag', { datas: { teste: ag(2, 8) }, checks: { ficha: 'recebida' } }),
+    c5: C('Marcos Ribeiro', 'v2', 'docs', { cpfMasc: '***.318.507-**', checks: { ficha: 'recebida', termo: 'assinado', avaliacaoGestor: 'aprovado', interesse: 'sim', checklistDocs: 'enviado' }, datas: { exame: dia(1) } }),
+    c6: C('Camila Rocha', 'v2', 'integracao', { cpfMasc: '***.902.114-**', datas: { integracao: ag(4, 7) } }),
+    c7: C('Felipe Nunes', 'v1', 'ent_re', { situacao: 'reprovado', motivo: 'Requisitos técnicos', area: 'Logística', datas: { entrevista: ag(-4, 9) } }),
+    c8: C('Sandra Matos', 'v2', 'teste_re', { situacao: 'desistiu', motivo: 'Outra proposta', area: 'Administrativo', retorno: { em: ag(-1), porNome: quem } }),
+    c9: C('Diego Fontes', null, 'triagem', { situacao: 'banco', area: 'Logística', origem: 'Currículo espontâneo', obs: 'CNH E, experiência com empilhadeira.' }),
+    c10: C('Aline Moraes', null, 'triagem', { situacao: 'banco', area: 'Administrativo', origem: 'Indicação', cidade: 'Fernandópolis/SP' }),
+  };
+  Object.values(B.cols.candidatos).forEach(c => { const v = B.cols.vagas[c.vagaId]; if (v) { c.vagaCodigo = v.codigo; c.vagaCargo = v.cargo; } });
 }
 
 export const D = DEMO ? await criarDemo() : await criarFirebase();

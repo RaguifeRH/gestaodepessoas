@@ -1,6 +1,6 @@
 // Usuários e acessos (só administrador).
-import { MODULOS } from '../config.js?v=4';
-import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=4';
+import { MODULOS } from '../config.js?v=5';
+import { $, $$, esc, tit, card, pes, pill, modal, toast, erroAmigavel, fmtDataHora } from '../ui.js?v=5';
 
 export async function render(el, ctx) {
   const lista = await ctx.D.listarUsuarios();
@@ -19,7 +19,7 @@ export async function render(el, ctx) {
       <div class="campo"><label for="u-email">E-mail</label><input class="inp" id="u-email" type="email" value="${esc(u.email)}" ${novo ? '' : 'readonly'}></div></div>
       ${novo ? '<div class="campo"><label for="u-senha">Senha inicial</label><input class="inp" id="u-senha" type="text" minlength="8" placeholder="Mínimo de 8 caracteres"><span class="ajuda">Passe para a pessoa; ela pode trocar depois em "Esqueci minha senha".</span></div>' : ''}
       <div class="campo"><label for="u-perfil">Perfil</label><select class="inp" id="u-perfil" ${eu ? 'disabled' : ''}><option value="usuario"${u.perfil !== 'admin' ? ' selected' : ''}>Usuário (só os módulos marcados)</option><option value="admin"${u.perfil === 'admin' ? ' selected' : ''}>Administrador (tudo, inclusive usuários)</option></select></div>
-      <div class="campo" id="u-mods-c"><label>Módulos liberados</label><div class="chk-grade">${MODULOS.map(m => `<label title="${esc(m.desc)}"><input type="checkbox" value="${m.id}"${(u.modulos || []).includes(m.id) ? ' checked' : ''}> ${esc(m.nome)}</label>`).join('')}</div><span class="ajuda">"Dados sensíveis" libera CPF completo, salário, documentos pessoais, filiação e contato.</span></div>
+      <div class="campo" id="u-mods-c"><label>Módulos liberados</label><div class="chk-grade">${MODULOS.filter(m => !m.perm).map(m => `<label title="${esc(m.desc)}"><input type="checkbox" value="${m.id}"${(u.modulos || []).includes(m.id) ? ' checked' : ''}> ${esc(m.nome)}</label>`).join('')}</div><span class="ajuda">"Dados sensíveis" libera CPF completo, salário, documentos pessoais, filiação e contato.</span></div>
       ${novo || eu ? '' : `<label class="chk-grade" style="grid-template-columns:1fr"><label><input type="checkbox" id="u-ativo"${u.ativo !== false ? ' checked' : ''}> Acesso ativo</label></label>`}
       <div id="u-msg"></div>`;
     const res = await modal({ titulo: novo ? 'Novo usuário' : 'Editar ' + u.nome, corpo, larga: true,

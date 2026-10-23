@@ -654,3 +654,31 @@ svg text{font-family:var(--texto)}
 .demo-faixa{position:fixed;left:50%;transform:translateX(-50%);top:0;z-index:95;background:var(--sol);color:#3d2a02;font-size:12px;font-weight:700;padding:3px 12px;border-radius:0 0 10px 10px}
 @media (max-width:700px){ .linha2,.linha3,.chk-grade{grid-template-columns:1fr} .filtros-l{grid-template-columns:1fr} }
 @media (max-width:900px){ .demo-faixa{top:auto;bottom:0;border-radius:10px 10px 0 0} }
+
+/* ---------- Etapa 2: páginas públicas (pedido do gestor e N2) ---------- */
+body.pagina-publica{background:var(--papel);min-height:100vh}
+.pub-wrap{padding:32px 16px 24px;max-width:700px;margin:0 auto}
+.publica .pub-c{padding:22px 26px;display:grid;gap:14px}
+.publica .pub-c form{display:grid;gap:14px;padding:0}
+.pub-rodape{text-align:center;font-size:12px;color:var(--txt3);margin-top:14px}
+.pub-passos{list-style:none;margin:4px 0;padding:0;display:grid;gap:10px}
+.pub-passos li{display:flex;gap:10px;align-items:center;color:var(--txt3);font-weight:600;font-size:14px}
+.pub-passos li span{width:24px;height:24px;border-radius:50%;border:3px solid var(--linha2);display:grid;place-items:center;font-size:13px;color:#fff;flex:none}
+.pub-passos li.ok{color:var(--ink)} .pub-passos li.ok span{background:var(--broto-esc);border-color:var(--broto-esc)}
+@media (max-width:600px){ .pub-wrap{padding:0 0 20px} .publica{border-radius:0;border:0} .publica .pub-c{padding:18px 16px} }
+
+/* ---------- Etapa 2: vagas, funil e kanban ---------- */
+.funil{display:flex;gap:3px;margin-bottom:4px}
+.funil i{flex:1;min-width:18px;height:20px;border-radius:5px;font:700 11px/20px var(--display);text-align:center;font-style:normal}
+.col.sobre{outline:2px dashed var(--verde);outline-offset:-4px;background:var(--orvalho-2)}
+.cand.arrastando{opacity:.45}
+.cand:focus-visible{outline:2px solid var(--verde);outline-offset:2px}
+.vaga-h .sla{align-self:start}
+@media (max-width:760px){ .vaga-h{grid-template-columns:1fr} .graf-grade[style]{grid-template-columns:1fr!important} }
+/* buscas dentro das telas continuam visíveis no celular (só a do topo some) */
+@media (max-width:900px){ #conteudo .busca{display:flex;width:100%!important;margin:0!important} }
+@media (max-width:640px){
+  .cv{grid-template-columns:auto minmax(0,1fr)}
+  .cv>div:last-child{grid-column:1/-1;justify-items:start!important}
+  .cv>div:last-child>div{justify-content:flex-start!important}
+}

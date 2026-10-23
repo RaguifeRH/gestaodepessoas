@@ -1,4 +1,4 @@
-# Gestão de Pessoas — Raguife · Etapa 1
+# Gestão de Pessoas — Raguife · Etapas 1 e 2
 
 Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **raguife-pessoas**.
 
@@ -12,6 +12,15 @@ Sistema único de Gestão de Pessoas do Grupo Raguife, ligado ao Firebase **ragu
 - **Experiência**: marcos de 10, 30, 45, 60 e 90 dias calculados pela admissão; registro com nome e data; avaliação e efetivação entram no dossiê.
 - **Painel de RH**: pessoas na folha, admissões, desligamentos, turnover, tempo de casa, por filial, setor e tipo de contrato.
 - **Início**: pendências do dia, aniversariantes e a trilha da jornada com números reais.
+
+## Etapa 2 — Vagas e seleção
+- **Pedidos de vaga**: o gestor pede por `pedido.html` (sem login) e acompanha pelo link que recebe; o RH encaminha ao N2, que aprova ou reprova por `n2.html?s=…` (sem login); o RH abre a vaga com os dados do pedido.
+- **Vagas e seleção**: lista com prazo (SLA do perfil) e funil; kanban por vaga (Triagem → Integração agendada), com os mesmos campos do R&S antigo em cada etapa; CPF pedido na entrevista e obrigatório na integração, conferido com o FO1029 (mostra se a pessoa já trabalhou aqui).
+- **Banco de currículos**: cadastrados, reprovados e desistentes, com área, histórico de vagas, retorno dado (quem e quando) e "Levar para uma vaga".
+- **Agenda do R&S**: entrevistas, testes, exames e integrações; histórico da agenda antiga.
+- **Dados dos sistemas antigos** (administrador): importa o backup do novaRH. Pode repetir; não sobrescreve o que foi alterado aqui.
+- Libere o módulo **Vagas e seleção (R&S)** para a equipe em Usuários e acessos.
+- Requer o login **Anônimo** ativo no Firebase (Authentication → Método de login) para as páginas do gestor e do N2.
 
 ## Como publicar (uma vez)
 

@@ -24,13 +24,16 @@ service cloud.firestore {
     function souAutor() { return request.resource.data.porUid == request.auth.uid; }
 
     // Configurações (não têm dados pessoais). "sistema" diz se o primeiro acesso já foi feito.
+    // As listas do R&S (setores, escalas, perfis) são lidas pelo formulário público do gestor;
+    // os e-mails dos N2 (selecao_n2) só pelo RH.
     match /config/{id} {
-      allow get: if true;
+      allow get: if id != 'selecao_n2' || mod('selecao');
       allow list: if admin();
       allow create: if (id == 'sistema' && logado() && sistemaNovo()
                         && getAfter(caminhoUsuario()).data.perfil == 'admin')
-                    || (id != 'sistema' && admin());
-      allow update, delete: if admin();
+                    || (id != 'sistema' && (admin() || (id in ['selecao', 'selecao_n2', 'contadores'] && mod('selecao'))));
+      allow update: if admin() || (id in ['selecao', 'selecao_n2', 'contadores'] && mod('selecao'));
+      allow delete: if admin();
     }
 
     // Usuários do sistema. Primeiro acesso: só rh@raguife.com.br, uma única vez.
@@ -46,7 +49,7 @@ service cloud.firestore {
 
     // Lista compacta de pessoas (um documento só, para listas e painéis).
     match /resumos/{id} {
-      allow read: if mod('pessoas') || mod('experiencia') || mod('painel_rh');
+      allow read: if mod('pessoas') || mod('experiencia') || mod('painel_rh') || mod('selecao');
       allow write: if mod('importar');
     }
 
@@ -76,6 +79,54 @@ service cloud.firestore {
       allow read: if mod('experiencia');
       allow create, update: if mod('experiencia');
       allow delete: if admin();
+    }
+
+    // ---------------------------------------------------------------------
+    // Vagas e seleção
+    // ---------------------------------------------------------------------
+    // Pedido de vaga. O gestor cria pelo link público (sessão anônima) e acompanha pelo link
+    // com o código do pedido; o N2 só consegue responder ao pedido que está com ele.
+    match /solicitacoes/{id} {
+      allow get: if logado();
+      allow list: if mod('selecao');
+      allow create: if mod('selecao')
+        || (logado() && request.resource.data.status == 'pendente'
+            && request.resource.data.keys().hasOnly(['gestor', 'email', 'empresa', 'setor', 'cargo', 'motivo', 'qtd', 'substituido', 'escala', 'requisitos', 'obs', 'status', 'criadoEm', 'historico'])
+            && request.resource.data.cargo is string && request.resource.data.cargo.size() > 0 && request.resource.data.cargo.size() < 200
+            && request.resource.data.historico is list && request.resource.data.historico.size() == 1);
+      allow update: if mod('selecao')
+        || (logado() && resource.data.status == 'com_n2'
+            && request.resource.data.status in ['aprovado_n2', 'reprovado_n2']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'n2Resposta', 'historico'])
+            && request.resource.data.historico.size() == resource.data.historico.size() + 1);
+      allow delete: if admin();
+    }
+    match /vagas/{id} {
+      allow read, create, update: if mod('selecao');
+      allow delete: if admin();
+    }
+    match /candidatos/{id} {
+      allow read, create, update: if mod('selecao');
+      allow delete: if admin();
+      match /privado/{doc} {
+        allow read: if mod('selecao') || mod('sensiveis');
+        allow write: if mod('selecao');
+      }
+      match /anexos/{an} {
+        allow read: if mod('selecao');
+        allow create: if mod('selecao') && souAutor();
+        allow update, delete: if admin();
+      }
+    }
+    // Agenda do R&S do sistema antigo (só leitura) e registro das migrações.
+    match /agenda_antiga/{id} {
+      allow read: if mod('selecao');
+      allow write: if admin();
+    }
+    match /migracoes/{id} {
+      allow read: if admin();
+      allow create: if admin() && souAutor();
+      allow update, delete: if false;
     }
 
     // Histórico das importações do FO1029.

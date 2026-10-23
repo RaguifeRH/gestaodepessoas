@@ -1,5 +1,5 @@
 // Painel de RH: headcount, admissões, desligamentos e turnover (dados do FO1029).
-import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=4';
+import { $, esc, tit, kpis, card, barras, legenda, hbar, fmtNum, fmtPct, hojeISO, diasEntre, vazio } from '../ui.js?v=5';
 
 let filial = '';
 const NOMES_MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -39,7 +39,7 @@ export async function render(el, ctx) {
 
   el.innerHTML = tit('ti-chart-bar', 'Painel de RH', `${filial ? esc(filial) : 'Todas as filiais'} · dados do FO1029`, `<select class="inp" id="fil" style="width:auto"><option value="">Todas as filiais</option>${filiais.map(f => `<option${f === filial ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select>`)
     + kpis([['Na folha hoje', fmtNum(naFolha.length), `${itens.filter(x => x.g === 'afastado').length} afastados`], ['Admissões no mês', fmtNum(adm[i]), dA[0], dA[1]], ['Desligamentos no mês', fmtNum(dem[i]), dD[0], dD[1]], ['Turnover médio', fmtPct(turnMedio), 'média mensal dos últimos 11 meses fechados']])
-    + `<div class="graf-grade">${card('Admissões e desligamentos', barras(rot, series, { rotulo: 'Admissões e desligamentos por mês' }), legenda(series))}
+    + `<div class="graf-grade">${card('Admissões e desligamentos', barras(rot, series, { rotulo: 'Admissões e desligamentos por mês', valores: v => v ? String(v) : '', fonte: 10 }), legenda(series))}
       ${card('Tempo de casa', hbar(casa, Math.max(...casa.map(c => c[1]))) + '<p class="small muted" style="margin:8px 0 0">Pessoas na folha hoje, pelo vínculo atual.</p>')}</div>
     <div class="g2i mt">${card('Por filial', hbar(porFilial, porFilial[0]?.[1]))}${card('Por tipo de contrato', hbar(porTipo, porTipo[0]?.[1]))}</div>
     <div class="mt">${card('Setores com mais pessoas', hbar(porSetor, porSetor[0]?.[1]))}</div>
